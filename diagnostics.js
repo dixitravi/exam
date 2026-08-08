@@ -1,17 +1,25 @@
 // ===== DIAGNOSTICS.JS =====
 // Reusable developer diagnostics panel.
-// Active only when the URL contains ?debug=1 or localStorage 'ved-debug' is '1'.
+// Active on localhost / 127.0.0.1, or when the URL contains ?debug=1,
+// or when localStorage / sessionStorage 'ved-debug' is '1'.
 
 let logs = [];
 let isSetup = false;
 
 function isDebugMode() {
   try {
-    const params = new URLSearchParams(window.location.search);
-    return params.has('debug') || localStorage.getItem('ved-debug') === '1';
+    const host = window.location.hostname || '';
+    if (host === 'localhost' || host === '127.0.0.1') return true;
+
+    const search = window.location.search || '';
+    if (/[?&]debug(=1?)?(&|$)/.test(search)) return true;
+
+    if (window.sessionStorage && sessionStorage.getItem('ved-debug') === '1') return true;
+    if (window.localStorage && localStorage.getItem('ved-debug') === '1') return true;
   } catch (e) {
-    return false;
+    // Ignore storage or hostname access errors in sandboxed frames
   }
+  return false;
 }
 
 function escapeHtml(str) {
@@ -40,11 +48,26 @@ function serializeArgs(args) {
   return Array.from(args).map(stringifyArg).join(' ');
 }
 
+function getStatusColor() {
+  const hasError = logs.some(log => log.type === 'error');
+  if (hasError) return '#dc2626'; // red
+  const hasWarning = logs.some(log => log.type === 'warning');
+  if (hasWarning) return '#f59e0b'; // orange/amber
+  return '#22c55e'; // green
+}
+
 function updateBadge() {
   const badge = document.getElementById('diagnosticsBadge');
-  if (!badge) return;
-  badge.textContent = logs.length;
-  badge.style.display = logs.length > 0 ? 'flex' : 'none';
+  const indicator = document.getElementById('diagnosticsIndicator');
+
+  if (badge) {
+    badge.textContent = logs.length;
+    badge.style.display = logs.length > 0 ? 'flex' : 'none';
+  }
+
+  if (indicator) {
+    indicator.style.backgroundColor = getStatusColor();
+  }
 }
 
 function addLog(type, message, source, line, col, stack, raw) {
@@ -212,7 +235,11 @@ function createUI() {
   btn.id = 'diagnosticsBtn';
   btn.className = 'diagnostics-btn';
   btn.title = 'Open Developer Diagnostics';
-  btn.innerHTML = 'Dev <span id="diagnosticsBadge" class="diagnostics-badge" style="display:none;">0</span>';
+  btn.innerHTML = `
+    <span id="diagnosticsIndicator" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:#22c55e;flex-shrink:0;"></span>
+    <span style="margin:0 4px;">Dev</span>
+    <span id="diagnosticsBadge" class="diagnostics-badge" style="display:none;">0</span>
+  `;
   btn.onclick = openPanel;
   document.body.appendChild(btn);
 
@@ -249,6 +276,7 @@ function createUI() {
 }
 
 function initDiagnostics() {
+  if (!isDebugMode()) return;
   setupCapture();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', createUI);
