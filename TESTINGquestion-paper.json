@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "schoolName": "",
+    "subject": "",
+    "className": "III",
+    "classSection": "G",
+    "examDate": "13/12/2025",
+    "duration": "",
+    "maxMarks": "1"
+  },
+  "questions": [
+    {
+      "id": 1765613132034.8254,
+      "text": "sdfssdsdf",
+      "marks": 110,
+      "options": [
+        {
+          "text": ""
+        },
+        {
+          "text": ""
+        },
+        {
+          "text": ""
+        },
+        {
+          "text": ""
+        },
+        {
+          "text": ""
+        },
+        {
+          "text": ""
+        }
+      ]
+    },
+    {
+      "id": 1765613363376.9397,
+      "text": "",
+      "marks": 20,
+      "options": []
+    }
+  ]
+}

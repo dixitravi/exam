@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VED Home Classes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page-content">
+  <div class="hero-wrapper">
+    <div class="hero-overlay"></div>
+    <header>
+      <div class="header-inner">
+        <div class="brand">
+          <img src="ved_logo.png" alt="VED Home Classes logo" class="brand-logo-img">
+          <div class="brand-text">
+            <div class="brand-title">VED Home Classes</div>
+            <div class="brand-sub">Design, review and print exam papers for your home tuitions</div>
+          </div>
+        </div>
+        <button type="button" id="themeToggle" class="theme-toggle">
+          <span class="icon" id="themeIcon">🌞</span>
+          <span id="themeLabel">Light mode</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="hero-content">
+      <div>
+        <div class="hero-left-title">Create neat, balanced test papers.</div>
+        <div class="hero-left-tag">
+          Add questions, options and marks while always seeing the running total — perfect for structured home tuition exams.
+        </div>
+      </div>
+      <div class="snapshot-card" id="snapshotCard">
+        <div class="snapshot-title">Exam snapshot</div>
+
+        <div class="snapshot-row">
+          <span class="snapshot-label">School</span>
+          <span class="snapshot-value" id="snapSchool">-</span>
+        </div>
+
+        <div class="snapshot-row">
+          <span class="snapshot-label">Subject</span>
+          <span class="snapshot-value" id="snapSubject">-</span>
+        </div>
+
+        <div class="snapshot-row two-cols">
+          <span class="snapshot-label">
+            <span>Class</span>
+            <span id="snapClass">-</span>
+          </span>
+          <span class="snapshot-label">
+            <span>Section</span>
+            <span id="snapSection" class="snapSection">-</span>
+          </span>
+        </div>
+
+        <div class="snapshot-row two-cols">
+          <span class="snapshot-label">
+            <span>Date</span>
+            <span id="snapDate">-</span>
+          </span>
+          <span class="snapshot-label">
+            <span>Duration</span>
+            <span id="snapDuration" class="snapDuration">-</span>
+          </span>
+        </div>
+
+        <div class="snapshot-row two-cols">
+          <span class="snapshot-label">
+            <span>Max marks</span>
+            <span id="snapMaxMarks">-</span>
+          </span>
+          <span class="snapshot-label">
+            <span>Current total</span>
+            <span id="snapTotal" class="snapTotal">0</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <div class="main-wrapper">
+	<h1 id="printSchoolHeader" class="print-only-school"></h1>
+    <div class="paper-meta-card">
+      <div class="paper-meta-header">
+        <div class="paper-meta-title">Exam details</div>
+        <button type="button" class="meta-toggle" id="metaToggleBtn">▲ Hide</button>
+      </div>
+      <div class="paper-meta" id="paperMetaBody">
+        <div>
+          <label>School Name</label>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <select id="schoolName">
+              <option>Ved Home Classes</option>
+              <option>Pacific Word School</option>
+            </select>
+            <button id="deleteSchoolBtn" title="Delete this school"
+                    style="border:none;background:#dc2626;color:#fff;border-radius:999px;padding:2px 8px;font-size:12px;cursor:pointer;">✕</button>
+          </div>
+          <span id="addSchoolLink" class="add-link" title="Click to add a new school">+ add new school</span>
+
+        </div>
+        <div>
+          <label>Subject</label>
+          <select id="subject">
+            <option value="">Subject</option>
+            <option>Mathematics</option>
+            <option>EVS</option>
+            <option>Science</option>
+            <option>Hindi</option>
+            <option>English</option>
+            <option>Computers</option>
+          </select>
+        </div>
+        <div>
+          <label>Class</label>
+          <select id="className">
+            <option value="">Class</option>
+            <option value="I">I (1)</option>
+            <option value="II">II (2)</option>
+            <option value="III">III (3)</option>
+            <option value="IV">IV (4)</option>
+            <option value="V">V (5)</option>
+            <option value="VI">VI (6)</option>
+            <option value="VII">VII (7)</option>
+            <option value="VIII">VIII (8)</option>
+            <option value="IX">IX (9)</option>
+            <option value="X">X (10)</option>
+            <option value="XI">XI (11)</option>
+            <option value="XII">XII (12)</option>
+          </select>
+        </div>
+        <div>
+          <label>Section</label>
+          <select id="classSection">
+            <option value="">Sec</option>
+            <option>A</option><option>B</option><option>C</option><option>D</option>
+            <option>E</option><option>F</option><option>G</option><option>H</option>
+            <option>I</option><option>J</option><option>K</option><option>L</option>
+          </select>
+        </div>
+        <div>
+          <label>Date (DD/MM/YYYY)</label>
+          <input id="examDate" type="date">
+        </div>
+        <div>
+          <label>Duration (min)</label>
+          <input id="duration" type="number" min="0" placeholder="90">
+        </div>
+        <div>
+          <label>Max Marks</label>
+          <input id="maxMarks" type="number" min="0">
+        </div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="burger-btn" id="burgerBtn" title="Menu">
+        <img src="burger-menu.svg" alt="Menu" style="height:24px;width:24px;">
+      </button>
+		<button class="btn-add" id="addQuestionBtn" title="Add new question (Alt+Q)">
+		  <img src="add-question.svg" alt="Add question" style="height:24px;width:24px;margin-right:8px;">
+		  Add Question
+		</button>
+      <div class="burger-menu" id="burgerMenu">
+        <div class="burger-menu-item" id="menuImport"><span style="width:20px;border:0px solid red; text-align:center;">⭱</span> Import</div>
+        <div class="burger-menu-item" id="menuExport"><span style="width:20px;border:0px solid red; text-align:center;">⭳</span> Export</div>
+        <div class="burger-menu-item" id="menuPrint"><span style="width:20px;border:0px solid red; text-align:center;">🖨</span> Print</div>
+      </div>
+
+      <input type="file" id="importInput" accept=".json,.ved,application/json">
+      <div class="marks-info" id="marksInfo">Total: 0</div>
+    </div>
+	<!-- PRINT-ONLY ELEMENTS (place right before questionsContainer) -->
+	<div class="print-only-school" id="printSchoolHeader"></div>
+	<div id="printExamDetails"></div>
+	<div id="questionsContainer"></div>
+    <div id="questionsContainer"></div>
+	
+	<!-- REPEATED TOOLBAR - shows after questions when >2 questions -->
+	<div class="toolbar toolbar-bottom" id="toolbarBottom" style="display: none;">
+	  <button class="btn-add" id="addQuestionBtnBottom" title="Add new question">
+		<img src="add-question.svg" alt="Add question" style="height:24px;width:24px;margin-right:8px;">
+		Add Question
+	  </button>
+	  <button id="exportBtnBottom" title="Export">Export</button>
+	  <button id="importBtnBottom" title="Import">Import</button>
+	  <button id="printBtnBottom" title="Print">Print</button>
+	</div>
+	
+  </div>
+</div>
+<footer>
+  <button id="updateVersionBtn" type="button">Update version</button>
+  <span id="footerCenterText">© Ved Home Classes</span>
+  <span id="versionInfo">Ver: 15.12.25 - 1004 (05:49:31 PM)</span>
+</footer>
+
+<!-- Zoom tooltip -->
+<div id="versionTooltip"></div>
+<div id="versionTooltipShadow"></div>
+
+
+
+<!-- delete confirm modal -->
+<div id="confirmModal" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.55);z-index:50;">
+  <div style="background:#fff;border-radius:10px;padding:16px 18px;max-width:320px;width:90%;box-shadow:0 10px 30px rgba(15,23,42,0.4);">
+    <div id="confirmMessage" style="font-size:14px;margin-bottom:12px;color:#0f172a;">Are you sure?</div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button id="confirmCancel" style="padding:6px 12px;border-radius:999px;border:1px solid #cbd5f5;background:#fff;font-size:13px;cursor:pointer;">Cancel</button>
+      <button id="confirmOk" style="padding:6px 12px;border-radius:999px;border:none;background:#dc2626;color:#fff;font-size:13px;cursor:pointer;">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- add school modal -->
+<div id="schoolModal" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.55);z-index:50;">
+  <div style="background:#fff;border-radius:10px;padding:16px 18px;max-width:320px;width:90%;box-shadow:0 10px 30px rgba(15,23,42,0.4);">
+    <div style="font-size:14px;margin-bottom:8px;color:#0f172a;font-weight:600;">Add school name</div>
+    <input id="newSchoolInput" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid #cbd5f5;margin-bottom:10px;font-size:13px;">
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button id="schoolCancel" style="padding:6px 12px;border-radius:999px;border:1px solid #cbd5f5;background:#fff;font-size:13px;cursor:pointer;">Cancel</button>
+      <button id="schoolSave" style="padding:6px 12px;border-radius:999px;border:none;background:#22c55e;color:#fff;font-size:13px;cursor:pointer;">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="core.js"></script>
+<script src="questions.js"></script>
+<script src="toolbar.js"></script>
+<script>
+  initCore();                     // core.js
+  const hasDraft = loadDraft();   // core.js
+  if (!hasDraft) {
+    questions.push(createEmptyQuestion()); // questions.js
+  }
+  updateSchoolDeleteVisibility(); // core.js
+  renderQuestions();              // questions.js
+  updateSnapshotMeta();           // core.js
+  updateMetaVisibilityForViewport(); // core.js
+  updateMarksInfoFloating();      // core.js
+  setInterval(saveDraft, 30000);  // core.js
+  window.addEventListener('beforeunload', saveDraft);
+</script>
+
+</body>
+</html>
