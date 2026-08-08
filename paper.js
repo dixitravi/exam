@@ -114,6 +114,7 @@ function loadPaper(paper) {
   updatePrintExamDetails();
   updateTotalMarks();
   showStatus('Opened: ' + currentPaper.name, 'success');
+  markSaved();
 }
 
 function newPaper() {
@@ -140,6 +141,7 @@ function newPaper() {
   updatePrintExamDetails();
   updateTotalMarks();
   showStatus('New paper created', 'success');
+  markSaved();
 }
 
 function downloadPaper(paper, filename) {
@@ -180,6 +182,7 @@ function savePaper() {
   const filename = sanitizeFilename(currentPaper.name) + '.json';
   downloadPaper(paper, filename);
   showStatus('Saved: ' + filename, 'success');
+  markSaved();
 }
 
 function openPaper(file) {
@@ -201,4 +204,31 @@ function openPaper(file) {
   };
   reader.onerror = () => showStatus('Failed to read file.', 'error');
   reader.readAsText(file);
+}
+
+let savedSnapshot = null;
+
+function getCurrentState() {
+  const meta = {};
+  Object.keys(metaFields).forEach(key => {
+    meta[key] = metaFields[key] ? metaFields[key].value : '';
+  });
+  return { meta, questions };
+}
+
+function markSaved() {
+  savedSnapshot = JSON.parse(JSON.stringify(getCurrentState()));
+}
+
+function hasUnsavedChanges() {
+  if (!savedSnapshot) return false;
+  return JSON.stringify(getCurrentState()) !== JSON.stringify(savedSnapshot);
+}
+
+async function onNewPaperRequested() {
+  if (hasUnsavedChanges()) {
+    const ok = await showConfirm('Unsaved Changes. You have unsaved changes in the current paper. Creating a new paper will discard the current work.', 'Create New Paper');
+    if (!ok) return;
+  }
+  newPaper();
 }

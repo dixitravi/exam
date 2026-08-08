@@ -21,7 +21,7 @@ addQuestionBtn.onclick = () => {
 };
 
 // New / Open / Save
-if (newPaperBtn) newPaperBtn.onclick = newPaper;
+if (newPaperBtn) newPaperBtn.onclick = onNewPaperRequested;
 if (openPaperBtn) openPaperBtn.onclick = () => openPaperInput.click();
 if (savePaperBtn) savePaperBtn.onclick = savePaper;
 

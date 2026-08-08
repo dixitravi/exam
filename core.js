@@ -102,6 +102,7 @@ function saveSchoolOptionsToStorage() {
 let confirmResolve = null;
 const confirmModal = document.getElementById('confirmModal');
 const confirmMessage = document.getElementById('confirmMessage');
+const confirmOk = document.getElementById('confirmOk');
 
 document.getElementById('confirmCancel').onclick = () => {
   confirmModal.style.display = 'none';
@@ -113,8 +114,9 @@ document.getElementById('confirmOk').onclick = () => {
   if (confirmResolve) confirmResolve(true);
 };
 
-function showConfirm(message) {
+function showConfirm(message, okText = 'Delete') {
   confirmMessage.textContent = message;
+  if (confirmOk) confirmOk.textContent = okText;
   confirmModal.style.display = 'flex';
   return new Promise(res => { confirmResolve = res; });
 }
