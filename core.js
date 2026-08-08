@@ -2,6 +2,8 @@
 
 // Global state and main DOM references
 let questions = [];
+let sections = [];
+let currentSectionId = null;
 
 const questionsContainer = document.getElementById('questionsContainer');
 const addQuestionBtn = document.getElementById('addQuestionBtn');
@@ -314,6 +316,8 @@ function saveDraft() {
   try {
     const draft = {
       questions: questions.map(q => ({ ...q })),
+      sections: sections.map(s => ({ ...s })),
+      currentSectionId,
       meta: Object.fromEntries(
         Object.entries(metaFields).map(([k, v]) => [k, v ? v.value : ''])
       ),
@@ -352,6 +356,12 @@ function loadDraft() {
         text: typeof sanitizeHtml === 'function' ? sanitizeHtml(o.text || '') : (o.text || '')
       })) : []
     }));
+
+    sections = (data.sections || []).map(s => ({
+      ...s,
+      questionIds: Array.isArray(s.questionIds) ? [...s.questionIds] : []
+    }));
+    currentSectionId = data.currentSectionId || (sections[0] && sections[0].id) || null;
     return true;
   } catch (e) {
     localStorage.removeItem('qp-draft-v1');
