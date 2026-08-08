@@ -68,6 +68,13 @@ function normalizeQuestions(rawQuestions) {
       base.options = Array.isArray(q.options)
         ? q.options.map(o => ({ text: sanitizeHtml((o.text || '').toString()) }))
         : [];
+    } else if (type === 'multiple_correct') {
+      base.options = Array.isArray(q.options)
+        ? q.options.map(o => ({
+            text: sanitizeHtml((o.text || '').toString()),
+            isCorrect: !!o.isCorrect
+          }))
+        : [];
     } else if (type === 'truefalse') {
       base.options = [{ text: 'True' }, { text: 'False' }];
     } else if (type === 'fillblank') {
@@ -77,6 +84,36 @@ function normalizeQuestions(rawQuestions) {
             answer: typeof b.answer === 'string' ? sanitizeHtml(b.answer) : ''
           }))
         : [{ id: 'b-' + Date.now() + '-' + i, answer: '' }];
+    } else if (type === 'short' || type === 'long' || type === 'numeric') {
+      base.answer = typeof q.answer === 'string' ? sanitizeHtml(q.answer) : (q.answer !== undefined ? String(q.answer) : '');
+    } else if (type === 'match') {
+      base.pairs = Array.isArray(q.pairs)
+        ? q.pairs.map(p => ({ left: sanitizeHtml((p.left || '').toString()), right: sanitizeHtml((p.right || '').toString()) }))
+        : [{ left: '', right: '' }];
+    } else if (type === 'paragraph') {
+      base.passage = typeof q.passage === 'string' ? sanitizeHtml(q.passage) : '';
+      base.subQuestions = Array.isArray(q.subQuestions)
+        ? normalizeSubQuestions(q.subQuestions)
+        : [];
+    }
+    return base;
+  });
+}
+
+function normalizeSubQuestions(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((q, i) => {
+    const type = q && q.type ? q.type : 'short';
+    const base = {
+      id: q.id || (Date.now() + Math.random() + i),
+      text: sanitizeHtml((q.text || '').toString()),
+      marks: Number(q.marks) || 0,
+      type
+    };
+    if (type === 'multiple') {
+      base.options = Array.isArray(q.options)
+        ? q.options.map(o => ({ text: sanitizeHtml((o.text || '').toString()) }))
+        : [];
     } else if (type === 'short' || type === 'long') {
       base.answer = typeof q.answer === 'string' ? sanitizeHtml(q.answer) : '';
     }
@@ -159,6 +196,7 @@ function loadPaper(paper) {
       name: s.name || 'SECTION',
       type: s.type || 'Multiple Choice',
       instructions: s.instructions || '',
+      collapsed: s.collapsed !== undefined ? !!s.collapsed : false,
       questionIds: Array.isArray(s.questionIds) ? [...s.questionIds] : []
     }));
   } else {
@@ -168,16 +206,13 @@ function loadPaper(paper) {
       name: 'SECTION A',
       type: 'Multiple Choice',
       instructions: '',
+      collapsed: false,
       questionIds: (paper.questions || []).map(q => q.id)
     }];
   }
   currentSectionId = sections[0].id;
 
-  questions = (paper.questions || []).map(q => ({
-    ...q,
-    sectionId: q.sectionId || currentSectionId,
-    type: q.type || 'multiple'
-  }));
+  questions = normalizeQuestions(paper.questions || []);
 
   const validSectionIds = new Set(sections.map(s => s.id));
   questions.forEach(q => {
@@ -208,6 +243,7 @@ function newPaper() {
     name: 'SECTION A',
     type: 'Multiple Choice',
     instructions: '',
+    collapsed: false,
     questionIds: []
   }];
   currentSectionId = defaultSectionId;

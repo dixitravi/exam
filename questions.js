@@ -3,10 +3,10 @@
 // snapTotal, debouncedSave, showConfirm, updateTotalMarks, toggleBottomToolbar (toolbar.js)
 
 // Basic question factory
-function createEmptyQuestion(type = 'multiple') {
-  const sectionId = currentSectionId || (sections[0] && sections[0].id) || null;
+function createEmptyQuestion(type = 'multiple', targetSectionId) {
+  const sectionId = targetSectionId || currentSectionId || (sections[0] && sections[0].id) || null;
   const base = { id: Date.now() + Math.random(), text: '', marks: 0, sectionId, type };
-  if (type === 'multiple') {
+  if (type === 'multiple' || type === 'multiple_correct') {
     return { ...base, options: [] };
   }
   if (type === 'truefalse') {
@@ -15,18 +15,35 @@ function createEmptyQuestion(type = 'multiple') {
   if (type === 'fillblank') {
     return { ...base, blanks: [{ id: 'b-' + Date.now() + '-1', answer: '' }] };
   }
-  if (type === 'short' || type === 'long') {
+  if (type === 'short' || type === 'long' || type === 'numeric') {
     return { ...base, answer: '' };
+  }
+  if (type === 'match') {
+    return { ...base, pairs: [{ left: '', right: '' }] };
+  }
+  if (type === 'paragraph') {
+    return { ...base, passage: '', subQuestions: [] };
   }
   return { ...base, options: [] };
 }
 
+function createEmptySubQuestion(type = 'short') {
+  const base = { id: Date.now() + Math.random(), text: '', marks: 0, type };
+  if (type === 'multiple') return { ...base, options: [] };
+  if (type === 'short' || type === 'long') return { ...base, answer: '' };
+  return { ...base, answer: '' };
+}
+
 const QUESTION_TYPE_LABELS = {
   multiple: 'Multiple Choice',
+  multiple_correct: 'Multiple Correct Answers',
   truefalse: 'True / False',
   fillblank: 'Fill in the Blanks',
   short: 'Short Answer',
-  long: 'Long Answer'
+  long: 'Long Answer',
+  numeric: 'Numeric Answer',
+  match: 'Make a Match',
+  paragraph: 'Paragraph Based'
 };
 
 function getQuestionTypeLabel(type) {
@@ -90,11 +107,14 @@ function showQuestionTypeSelector() {
 }
 
 async function addQuestionOfSelectedType(targetSectionId) {
-  if (!currentSectionId && sections.length) currentSectionId = sections[0].id;
+  const target = targetSectionId || (sections.length ? sections[sections.length - 1].id : null);
+  if (!target) {
+    showStatus('Please add a section first', 'error');
+    return;
+  }
   const type = await showQuestionTypeSelector();
   if (!type) return;
-  const q = createEmptyQuestion(type);
-  q.sectionId = targetSectionId || currentSectionId || (sections[0] && sections[0].id) || null;
+  const q = createEmptyQuestion(type, target);
   questions.push(q);
   renderQuestions();
   debouncedSave();
@@ -560,6 +580,7 @@ function addSection() {
     name: 'SECTION ' + nextLetter,
     type: 'Multiple Choice',
     instructions: '',
+    collapsed: false,
     questionIds: []
   };
   sections.splice(activeIndex + 1, 0, newSection);
@@ -596,7 +617,7 @@ function deleteSection(id) {
 
 function createSectionHeader(section) {
   const header = document.createElement('div');
-  header.className = 'section-header' + (section.id === currentSectionId ? ' active-section' : '');
+  header.className = 'section-header';
   header.dataset.sectionId = section.id;
 
   const printInfo = document.createElement('div');
@@ -607,6 +628,11 @@ function createSectionHeader(section) {
 
   const controls = document.createElement('div');
   controls.className = 'section-controls';
+
+  const collapseToggle = document.createElement('span');
+  collapseToggle.className = 'section-collapse-toggle';
+  collapseToggle.textContent = section.collapsed ? '▲' : '▼';
+  collapseToggle.setAttribute('aria-label', section.collapsed ? 'Expand section' : 'Collapse section');
 
   const top = document.createElement('div');
   top.className = 'section-controls-top';
@@ -644,7 +670,7 @@ function createSectionHeader(section) {
   const addQBtn = document.createElement('button');
   addQBtn.type = 'button';
   addQBtn.className = 'section-action-btn';
-  addQBtn.textContent = '+ Question';
+  addQBtn.textContent = '+ Add Question';
   addQBtn.title = 'Add question to this section';
   addQBtn.onclick = (e) => {
     e.stopPropagation();
@@ -672,30 +698,25 @@ function createSectionHeader(section) {
   delBtn.title = 'Delete section';
   delBtn.onclick = (e) => { e.stopPropagation(); deleteSection(section.id); };
 
-  const selectBtn = document.createElement('button');
-  selectBtn.type = 'button';
-  selectBtn.className = 'section-action-btn section-select-btn';
-  selectBtn.textContent = 'Select';
-  selectBtn.title = 'Select this section for main Add Question';
-  selectBtn.onclick = (e) => { e.stopPropagation(); currentSectionId = section.id; renderQuestions(); };
 
   actions.appendChild(addQBtn);
   actions.appendChild(upBtn);
   actions.appendChild(downBtn);
   actions.appendChild(delBtn);
-  actions.appendChild(selectBtn);
 
   controls.appendChild(top);
   controls.appendChild(instructions);
   controls.appendChild(actions);
 
   header.appendChild(printInfo);
+  header.appendChild(collapseToggle);
   header.appendChild(controls);
 
   header.addEventListener('click', (e) => {
     if (e.target.closest('input, select, textarea, button')) return;
-    currentSectionId = section.id;
+    section.collapsed = !section.collapsed;
     renderQuestions();
+    debouncedSave();
   });
 
   return header;
@@ -707,8 +728,16 @@ function renderQuestions() {
   const validSectionIds = new Set(sections.map(s => s.id));
   let globalQuestionCount = 1;
   sections.forEach((section, sectionIndex) => {
+    const sectionCard = document.createElement('div');
+    sectionCard.className = 'section-card' + (section.collapsed ? ' collapsed' : '');
+    sectionCard.dataset.sectionIndex = String(sectionIndex);
+
     const sectionHeader = createSectionHeader(section);
-    questionsContainer.appendChild(sectionHeader);
+    sectionCard.appendChild(sectionHeader);
+
+    const sectionBody = document.createElement('div');
+    sectionBody.className = 'section-body';
+    sectionCard.appendChild(sectionBody);
 
     questions.forEach((q, idx) => {
       const belongsToSection = q.sectionId === section.id || (sectionIndex === 0 && !validSectionIds.has(q.sectionId));
@@ -1055,6 +1084,261 @@ function renderQuestions() {
       blanksWrap.appendChild(addBlankBtn);
 
       answerContainer.appendChild(blanksWrap);
+    } else if (qType === 'multiple_correct') {
+      const optionsDiv = document.createElement('div');
+      optionsDiv.className = 'options multiple-correct-options';
+      const optTitle = document.createElement('div');
+      optTitle.className = 'options-title';
+      optTitle.textContent = 'Options (check all that are correct)';
+      optionsDiv.appendChild(optTitle);
+
+      const optionsGrid = document.createElement('div');
+      optionsGrid.className = 'options-grid';
+
+      q.options.forEach((opt, oIdx) => {
+        const row = document.createElement('div');
+        row.className = 'option-row';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!opt.isCorrect;
+        cb.title = 'Correct option';
+        cb.onchange = e => { opt.isCorrect = e.target.checked; };
+        row.appendChild(cb);
+
+        const label = document.createElement('span');
+        label.className = 'label';
+        label.textContent = String.fromCharCode(65 + oIdx) + '.';
+        row.appendChild(label);
+
+        const optInput = document.createElement('input');
+        optInput.type = 'text';
+        optInput.placeholder = 'Option text';
+        optInput.value = opt.text || '';
+        optInput.oninput = e => { opt.text = e.target.value; };
+        row.appendChild(optInput);
+
+        const optionLabel = String.fromCharCode(65 + oIdx);
+        const removeBtn = document.createElement('button');
+        removeBtn.innerHTML = '<img src="delete.svg" alt="Delete option">';
+        removeBtn.setAttribute('aria-label', 'Remove option ' + optionLabel);
+        removeBtn.onclick = async () => {
+          const ok = await showConfirm('Are you sure you want to delete option "' + optionLabel + '"?');
+          if (!ok) return;
+          q.options.splice(oIdx, 1);
+          renderQuestions();
+        };
+        row.appendChild(removeBtn);
+
+        optionsGrid.appendChild(row);
+      });
+
+      optionsDiv.appendChild(optionsGrid);
+
+      const addOptBtn = document.createElement('button');
+      addOptBtn.className = 'btn-add-option';
+      addOptBtn.type = 'button';
+      addOptBtn.setAttribute('aria-label', 'Add option');
+      addOptBtn.innerHTML = '<img src="add-answers.svg" alt="Add option">Add option';
+      addOptBtn.onclick = () => {
+        q.options.push({ text: '', isCorrect: false });
+        renderQuestions();
+        setTimeout(() => {
+          const thisCard = card;
+          if (!thisCard) return;
+          const inputs = thisCard.querySelectorAll('.option-row input[type="text"]');
+          const lastInput = inputs[inputs.length - 1];
+          if (lastInput) lastInput.focus();
+        }, 0);
+      };
+      optionsDiv.appendChild(addOptBtn);
+      answerContainer.appendChild(optionsDiv);
+    } else if (qType === 'numeric') {
+      const numericWrap = document.createElement('div');
+      numericWrap.className = 'numeric-row';
+
+      const label = document.createElement('span');
+      label.className = 'options-title';
+      label.textContent = 'Expected answer';
+      numericWrap.appendChild(label);
+
+      const numInput = document.createElement('input');
+      numInput.type = 'number';
+      numInput.className = 'numeric-input';
+      numInput.placeholder = '0';
+      numInput.value = q.answer !== undefined ? String(q.answer) : '';
+      numInput.oninput = e => { q.answer = e.target.value; };
+      numericWrap.appendChild(numInput);
+
+      answerContainer.appendChild(numericWrap);
+    } else if (qType === 'match') {
+      const matchWrap = document.createElement('div');
+      matchWrap.className = 'match-rows';
+
+      const matchTitle = document.createElement('div');
+      matchTitle.className = 'options-title';
+      matchTitle.textContent = 'Matching pairs';
+      matchWrap.appendChild(matchTitle);
+
+      if (!Array.isArray(q.pairs)) q.pairs = [{ left: '', right: '' }];
+      q.pairs.forEach((p, pIdx) => {
+        const row = document.createElement('div');
+        row.className = 'match-row';
+        row.dataset.pairIndex = String(pIdx);
+
+        const leftInput = document.createElement('input');
+        leftInput.type = 'text';
+        leftInput.placeholder = 'Left';
+        leftInput.value = p.left || '';
+        leftInput.oninput = e => { p.left = e.target.value; };
+        row.appendChild(leftInput);
+
+        const rightInput = document.createElement('input');
+        rightInput.type = 'text';
+        rightInput.placeholder = 'Right';
+        rightInput.value = p.right || '';
+        rightInput.oninput = e => { p.right = e.target.value; };
+        row.appendChild(rightInput);
+
+        const delBtn = document.createElement('button');
+        delBtn.innerHTML = '<img src="delete.svg" alt="Remove pair">';
+        delBtn.setAttribute('aria-label', 'Remove pair ' + (pIdx + 1));
+        delBtn.onclick = () => {
+          q.pairs.splice(pIdx, 1);
+          renderQuestions();
+        };
+        row.appendChild(delBtn);
+
+        matchWrap.appendChild(row);
+      });
+
+      const addPairBtn = document.createElement('button');
+      addPairBtn.type = 'button';
+      addPairBtn.className = 'btn-add-option';
+      addPairBtn.setAttribute('aria-label', 'Add pair');
+      addPairBtn.innerHTML = '<img src="add-answers.svg" alt="Add pair">Add Pair';
+      addPairBtn.onclick = () => {
+        q.pairs.push({ left: '', right: '' });
+        renderQuestions();
+      };
+      matchWrap.appendChild(addPairBtn);
+      answerContainer.appendChild(matchWrap);
+    } else if (qType === 'paragraph') {
+      const paraWrap = document.createElement('div');
+      paraWrap.className = 'paragraph-editor';
+
+      const passageTitle = document.createElement('div');
+      passageTitle.className = 'options-title';
+      passageTitle.textContent = 'Passage';
+      paraWrap.appendChild(passageTitle);
+
+      const passage = document.createElement('textarea');
+      passage.className = 'paragraph-passage';
+      passage.placeholder = 'Enter the paragraph / passage here...';
+      passage.value = q.passage || '';
+      passage.oninput = e => { q.passage = e.target.value; };
+      paraWrap.appendChild(passage);
+
+      const subQsWrap = document.createElement('div');
+      subQsWrap.className = 'sub-questions';
+
+      if (!Array.isArray(q.subQuestions)) q.subQuestions = [];
+      q.subQuestions.forEach((sq, sqIdx) => {
+        const sqCard = document.createElement('div');
+        sqCard.className = 'sub-question-card';
+
+        const sqHeader = document.createElement('div');
+        sqHeader.className = 'sub-question-header';
+        sqHeader.textContent = 'Q' + (sqIdx + 1);
+
+        const typeSelect = document.createElement('select');
+        typeSelect.className = 'sub-question-type-select';
+        ['short', 'long', 'multiple'].forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t;
+          opt.textContent = getQuestionTypeLabel(t);
+          if (sq.type === t) opt.selected = true;
+          typeSelect.appendChild(opt);
+        });
+        typeSelect.onchange = e => {
+          sq.type = e.target.value;
+          const base = createEmptySubQuestion(sq.type);
+          base.id = sq.id;
+          base.text = sq.text || '';
+          base.marks = sq.marks || 0;
+          Object.assign(sq, base);
+          renderQuestions();
+        };
+        sqHeader.appendChild(typeSelect);
+
+        const delSqBtn = document.createElement('button');
+        delSqBtn.innerHTML = '<img src="delete.svg" alt="Delete sub-question">';
+        delSqBtn.setAttribute('aria-label', 'Delete sub-question ' + (sqIdx + 1));
+        delSqBtn.onclick = () => {
+          q.subQuestions.splice(sqIdx, 1);
+          renderQuestions();
+        };
+        sqHeader.appendChild(delSqBtn);
+        sqCard.appendChild(sqHeader);
+
+        const sqText = document.createElement('textarea');
+        sqText.className = 'sub-question-text';
+        sqText.placeholder = 'Sub-question text';
+        sqText.value = sq.text || '';
+        sqText.oninput = e => { sq.text = e.target.value; };
+        sqCard.appendChild(sqText);
+
+        if (sq.type === 'multiple') {
+          const optsWrap = document.createElement('div');
+          optsWrap.className = 'options-grid';
+          (sq.options || []).forEach((o, oIdx) => {
+            const row = document.createElement('div');
+            row.className = 'option-row';
+            const label = document.createElement('span');
+            label.className = 'label';
+            label.textContent = String.fromCharCode(65 + oIdx) + '.';
+            row.appendChild(label);
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.value = o.text || '';
+            inp.oninput = e => { o.text = e.target.value; };
+            row.appendChild(inp);
+            const rem = document.createElement('button');
+            rem.innerHTML = '<img src="delete.svg" alt="Remove option">';
+            rem.onclick = () => { sq.options.splice(oIdx, 1); renderQuestions(); };
+            row.appendChild(rem);
+            optsWrap.appendChild(row);
+          });
+          sqCard.appendChild(optsWrap);
+          const addOpt = document.createElement('button');
+          addOpt.className = 'btn-add-option';
+          addOpt.type = 'button';
+          addOpt.textContent = 'Add option';
+          addOpt.onclick = () => { if (!sq.options) sq.options = []; sq.options.push({ text: '' }); renderQuestions(); };
+          sqCard.appendChild(addOpt);
+        } else if (sq.type === 'short' || sq.type === 'long') {
+          const ansInput = document.createElement('textarea');
+          ansInput.className = 'sub-question-text';
+          ansInput.placeholder = 'Answer / key points';
+          ansInput.value = sq.answer || '';
+          ansInput.oninput = e => { sq.answer = e.target.value; };
+          sqCard.appendChild(ansInput);
+        }
+
+        subQsWrap.appendChild(sqCard);
+      });
+
+      const addSubBtn = document.createElement('button');
+      addSubBtn.type = 'button';
+      addSubBtn.className = 'btn-add-option';
+      addSubBtn.innerHTML = '<img src="add-answers.svg" alt="Add sub-question">Add Sub-question';
+      addSubBtn.onclick = () => {
+        q.subQuestions.push(createEmptySubQuestion('short'));
+        renderQuestions();
+      };
+      subQsWrap.appendChild(addSubBtn);
+      paraWrap.appendChild(subQsWrap);
+      answerContainer.appendChild(paraWrap);
     }
 
     card.appendChild(answerContainer);
@@ -1068,25 +1352,26 @@ function renderQuestions() {
     printText.innerHTML = q.text || '';
     printPreview.appendChild(printText);
 
-    if (qType === 'multiple' || qType === 'truefalse') {
+    if (qType === 'multiple' || qType === 'multiple_correct' || qType === 'truefalse') {
       const options = qType === 'truefalse' ? [{ text: 'True' }, { text: 'False' }] : (q.options || []);
+      const isCheckbox = qType === 'multiple_correct';
       const printOptions = document.createElement('div');
       printOptions.className = 'print-options';
       options.forEach((opt, oIdx) => {
         const row = document.createElement('div');
         row.className = 'print-option-row';
 
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.disabled = true;
+        const input = document.createElement('input');
+        input.type = isCheckbox ? 'checkbox' : 'radio';
+        input.disabled = true;
         const labelSpan = document.createElement('span');
         labelSpan.className = 'print-option-label';
-        labelSpan.textContent = (qType === 'multiple' ? String.fromCharCode(65 + oIdx) + '.' : (opt.text || '')) + ' ';
+        labelSpan.textContent = ((qType === 'multiple' || qType === 'multiple_correct') ? String.fromCharCode(65 + oIdx) + '.' : (opt.text || '')) + ' ';
         const textSpan = document.createElement('span');
         textSpan.textContent = qType === 'truefalse' ? '' : (opt.text || '');
 
-        row.appendChild(radio);
-        if (qType === 'multiple') {
+        row.appendChild(input);
+        if (qType === 'multiple' || qType === 'multiple_correct') {
           row.appendChild(labelSpan);
           row.appendChild(textSpan);
         } else {
@@ -1095,9 +1380,9 @@ function renderQuestions() {
         printOptions.appendChild(row);
       });
       printPreview.appendChild(printOptions);
-    } else if (qType === 'short') {
+    } else if (qType === 'short' || qType === 'numeric') {
       const shortBlank = document.createElement('div');
-      shortBlank.className = 'print-short-blank';
+      shortBlank.className = 'print-numeric-blank';
       shortBlank.textContent = '';
       printPreview.appendChild(shortBlank);
     } else if (qType === 'long') {
@@ -1116,6 +1401,56 @@ function renderQuestions() {
         blanksBox.appendChild(line);
       });
       printPreview.appendChild(blanksBox);
+    } else if (qType === 'match') {
+      const matchBox = document.createElement('div');
+      matchBox.className = 'print-match';
+      const leftCol = document.createElement('div');
+      leftCol.className = 'print-match-column';
+      const rightCol = document.createElement('div');
+      rightCol.className = 'print-match-column';
+      const pairs = q.pairs || [];
+      pairs.forEach((p, i) => {
+        const lRow = document.createElement('div');
+        lRow.className = 'print-match-row';
+        lRow.textContent = (i + 1) + '. ' + (p.left || '');
+        leftCol.appendChild(lRow);
+        const rRow = document.createElement('div');
+        rRow.className = 'print-match-row';
+        const rText = document.createElement('span');
+        rText.textContent = (p.right || '');
+        const spacer = document.createElement('span');
+        spacer.className = 'print-match-spacer';
+        rRow.appendChild(spacer);
+        rRow.appendChild(rText);
+        rightCol.appendChild(rRow);
+      });
+      matchBox.appendChild(leftCol);
+      matchBox.appendChild(rightCol);
+      printPreview.appendChild(matchBox);
+    } else if (qType === 'paragraph') {
+      const passage = document.createElement('div');
+      passage.className = 'print-paragraph-passage';
+      passage.textContent = q.passage || '';
+      printPreview.appendChild(passage);
+
+      const subQs = q.subQuestions || [];
+      if (subQs.length) {
+        const subWrap = document.createElement('div');
+        subWrap.className = 'print-sub-questions';
+        subQs.forEach((sq, sqIdx) => {
+          const row = document.createElement('div');
+          row.className = 'print-sub-question';
+          const num = document.createElement('span');
+          num.className = 'print-sub-question-number';
+          num.textContent = 'Q' + (sqIdx + 1) + '.';
+          const text = document.createElement('span');
+          text.textContent = sq.text || '';
+          row.appendChild(num);
+          row.appendChild(text);
+          subWrap.appendChild(row);
+        });
+        printPreview.appendChild(subWrap);
+      }
     }
 
     card.appendChild(printPreview);
@@ -1154,8 +1489,9 @@ function renderQuestions() {
       marksInputEl.style.color = '#A8A8A8';
     }
 
-    questionsContainer.appendChild(card);
+    sectionBody.appendChild(card);
   });
+    questionsContainer.appendChild(sectionCard);
   });
 
   updateTotalMarks();
