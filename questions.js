@@ -7,6 +7,24 @@ function createEmptyQuestion() {
   return { id: Date.now() + Math.random(), text: '', marks: 0, options: [] };
 }
 
+function sanitizeHtml(html) {
+  if (typeof html !== 'string') return String(html || '');
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  temp.querySelectorAll('script').forEach(el => el.remove());
+  const all = temp.querySelectorAll('*');
+  for (let i = 0; i < all.length; i++) {
+    const el = all[i];
+    const attrs = Array.from(el.attributes);
+    for (let a = 0; a < attrs.length; a++) {
+      const name = attrs[a].name.toLowerCase();
+      if (name.startsWith('on')) el.removeAttribute(attrs[a].name);
+      if (name === 'href' && /^javascript:/i.test(attrs[a].value)) el.removeAttribute('href');
+    }
+  }
+  return temp.innerHTML;
+}
+
 // Enable simple drag-resize on images inside any contenteditable
 function makeImagesResizable(root) {
   let tooltip = null;
@@ -143,6 +161,7 @@ function makeDraggable() {
     grip.className = 'drag-grip';
     grip.innerHTML = '⋮⋮';
     grip.title = 'Drag to reorder (hold and drag)';
+    grip.setAttribute('aria-label', 'Drag to reorder');
     grip.draggable = true;
     grip.dataset.questionIndex = idx;
     left.insertBefore(grip, left.firstChild);
@@ -259,18 +278,18 @@ function updateTotalMarks() {
   const total = questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
   const max = Number(maxMarksInput.value) || 0;
 
-  marksInfo.textContent = 'Total: ' + total;
   snapTotal.textContent = total;
 
   marksInfo.classList.remove('marks-ok', 'marks-warning');
   marksInfo.style.color = '';
 
   if (!max || total <= max) {
+    marksInfo.textContent = 'Total: ' + total;
     marksInfo.classList.add('marks-ok');
   } else {
+    const over = total - max;
+    marksInfo.textContent = 'Total: ' + total + ' (exceeds max ' + max + ' by ' + over + ')';
     marksInfo.classList.add('marks-warning');
-    marksInfo.style.color = 'red';
-    alert('Total marks (' + total + ') exceed maximum marks (' + max + '). Please correct the marks.');
   }
 }
 
@@ -303,11 +322,13 @@ function openQuestionModal(question, index) {
     <button type="button" class="format-btn clear-btn" title="Clear formatting (Ctrl+Shift+C)">Clear</button>
   `;
   modal.appendChild(toolbar);
+  toolbar.querySelectorAll('button[title]').forEach(b => b.setAttribute('aria-label', b.getAttribute('title')));
 
   // Editor
   const editor = document.createElement('div');
   editor.className = 'question-modal-editor content-editable';
   editor.contentEditable = true;
+  editor.setAttribute('aria-label', 'Question editor');
   editor.innerHTML = question.text || '';
   modal.appendChild(editor);
   makeImagesResizable(editor);
@@ -409,7 +430,7 @@ function openQuestionModal(question, index) {
   saveBtn.textContent = 'Save';
   saveBtn.className = 'modal-btn modal-save';
   saveBtn.onclick = () => {
-    question.text = editor.innerHTML;
+    question.text = sanitizeHtml(editor.innerHTML);
     renderQuestions();
     overlay.remove();
   };
@@ -463,6 +484,7 @@ function renderQuestions() {
     const delBtn = document.createElement('button');
     delBtn.innerHTML = '<img src="delete.svg" alt="Delete">';
     delBtn.title = 'Delete question';
+    delBtn.setAttribute('aria-label', 'Delete question');
     delBtn.onclick = async () => {
       const ok = await showConfirm('Are you sure you want to delete "' + qLabelText + '" ?');
       if (!ok) return;
@@ -501,12 +523,14 @@ function renderQuestions() {
 
     const insertImageBtn = toolbar.querySelector('.insert-image-btn');
     insertImageBtn.onclick = () => imageInput.click();
+    toolbar.querySelectorAll('button[title]').forEach(b => b.setAttribute('aria-label', b.getAttribute('title')));
 
     editorWrap.appendChild(toolbar);
 
     const contentEditable = document.createElement('div');
     contentEditable.className = 'question-text content-editable';
     contentEditable.contentEditable = true;
+    contentEditable.setAttribute('aria-label', 'Question text');
     contentEditable.innerHTML = q.text || '';
     editorWrap.appendChild(contentEditable);
     card.appendChild(editorWrap);
@@ -561,7 +585,7 @@ function renderQuestions() {
     };
 
     const syncQuestionText = () => {
-      q.text = contentEditable.innerHTML;
+      q.text = sanitizeHtml(contentEditable.innerHTML);
     };
 
     contentEditable.addEventListener('input', () => {
@@ -626,6 +650,7 @@ function renderQuestions() {
 
       const removeBtn = document.createElement('button');
       removeBtn.innerHTML = '<img src="delete.svg" alt="Delete option">';
+      removeBtn.setAttribute('aria-label', 'Remove option ' + optionLabel);
       removeBtn.onclick = async () => {
         const optionLabel = String.fromCharCode(65 + oIdx);
         const ok = await showConfirm('Are you sure you want to delete option "' + optionLabel + '"?');
@@ -643,6 +668,7 @@ function renderQuestions() {
     const addOptBtn = document.createElement('button');
     addOptBtn.className = 'btn-add-option';
     addOptBtn.type = 'button';
+    addOptBtn.setAttribute('aria-label', 'Add option');
     addOptBtn.innerHTML = '<img src="add-answers.svg" alt="Add option">Add option';
     addOptBtn.onclick = () => {
       q.options.push({ text: '' });

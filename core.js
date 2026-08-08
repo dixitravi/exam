@@ -22,19 +22,6 @@ const metaFields = {
   maxMarks: maxMarksInput
 };
 
-// Max limits: 100 marks, 180 minutes
-function validateMaxLimits() {
-  const maxMarksVal = Number(metaFields.maxMarks.value) || 0;
-  if (maxMarksVal > 100) {
-    metaFields.maxMarks.value = '100';
-  }
-
-  const durationVal = Number(metaFields.duration.value) || 0;
-  if (durationVal > 180) {
-    metaFields.duration.value = '180';
-  }
-}
-
 // Snapshot DOM references
 const snapSchool = document.getElementById('snapSchool');
 const snapSubject = document.getElementById('snapSubject');
@@ -344,7 +331,14 @@ function loadDraft() {
       if (metaFields[key]) metaFields[key].value = value || '';
     });
 
-    questions = data.questions || [];
+    questions = (data.questions || []).map(q => ({
+      ...q,
+      text: typeof sanitizeHtml === 'function' ? sanitizeHtml(q.text || '') : (q.text || ''),
+      options: Array.isArray(q.options) ? q.options.map(o => ({
+        ...o,
+        text: typeof sanitizeHtml === 'function' ? sanitizeHtml(o.text || '') : (o.text || '')
+      })) : []
+    }));
     return true;
   } catch (e) {
     localStorage.removeItem('qp-draft-v1');
@@ -357,7 +351,6 @@ const debouncedSave = debounce(saveDraft, 1000);
 // Meta inputs wiring
 Object.values(metaFields).forEach(input => {
   input.addEventListener('input', () => {
-    validateMaxLimits();
     updateSnapshotMeta();
     updatePrintExamDetails();
     if (input === maxMarksInput && typeof updateTotalMarks === 'function') {

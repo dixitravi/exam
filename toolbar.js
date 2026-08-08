@@ -61,10 +61,10 @@ importInput.onchange = e => {
 
       questions = (Array.isArray(data.questions) ? data.questions : []).map(q => ({
         id: q.id || Date.now() + Math.random(),
-        text: (q.text || '').toString(),
+        text: sanitizeHtml((q.text || '').toString()),
         marks: Number(q.marks) || 0,
         options: Array.isArray(q.options)
-          ? q.options.map(o => ({ text: (o.text || '').toString() }))
+          ? q.options.map(o => ({ text: sanitizeHtml((o.text || '').toString()) }))
           : []
       }));
 
