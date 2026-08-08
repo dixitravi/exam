@@ -162,34 +162,39 @@
       <button class="burger-btn" id="burgerBtn" title="Menu">
         <img src="burger-menu.svg" alt="Menu" style="height:24px;width:24px;">
       </button>
-		<button class="btn-add" id="addQuestionBtn" title="Add new question (Alt+Q)">
-		  <img src="add-question.svg" alt="Add question" style="height:24px;width:24px;margin-right:8px;">
-		  Add Question
-		</button>
+      <div class="paper-actions" style="display:flex;gap:6px;">
+        <button class="btn-paper" id="newPaperBtn" title="New paper (Ctrl+N)">New</button>
+        <button class="btn-paper" id="openPaperBtn" title="Open paper (Ctrl+O)">Open</button>
+        <button class="btn-paper" id="savePaperBtn" title="Save paper (Ctrl+S)">Save</button>
+      </div>
+      <button class="btn-add" id="addQuestionBtn" title="Add new question (Alt+Q)">
+        <img src="add-question.svg" alt="Add question" style="height:24px;width:24px;margin-right:8px;">
+        Add Question
+      </button>
       <div class="burger-menu" id="burgerMenu">
-        <div class="burger-menu-item" id="menuImport"><span style="width:20px;border:0px solid red; text-align:center;">⭱</span> Import</div>
-        <div class="burger-menu-item" id="menuExport"><span style="width:20px;border:0px solid red; text-align:center;">⭳</span> Export</div>
         <div class="burger-menu-item" id="menuPrint"><span style="width:20px;border:0px solid red; text-align:center;">🖨</span> Print</div>
       </div>
 
-      <input type="file" id="importInput" accept=".json,.ved,application/json">
+      <input type="file" id="openPaperInput" accept=".json,.ved,application/json" style="display:none;">
+      <span id="statusMessage" class="status-message"></span>
       <div class="marks-info" id="marksInfo">Total: 0</div>
     </div>
 	<!-- PRINT-ONLY ELEMENTS (place right before questionsContainer) -->
 	<div id="printExamDetails"></div>
 	<div id="questionsContainer"></div>
-	
+
 	<!-- REPEATED TOOLBAR - shows after questions when >2 questions -->
 	<div class="toolbar toolbar-bottom" id="toolbarBottom" style="display: none;">
 	  <button class="btn-add" id="addQuestionBtnBottom" title="Add new question">
 		<img src="add-question.svg" alt="Add question" style="height:24px;width:24px;margin-right:8px;">
 		Add Question
 	  </button>
-	  <button id="exportBtnBottom" title="Export">Export</button>
-	  <button id="importBtnBottom" title="Import">Import</button>
+	  <button class="btn-paper" id="newPaperBtnBottom" title="New paper">New</button>
+	  <button class="btn-paper" id="openPaperBtnBottom" title="Open paper">Open</button>
+	  <button class="btn-paper" id="savePaperBtnBottom" title="Save paper">Save</button>
 	  <button id="printBtnBottom" title="Print">Print</button>
 	</div>
-	
+
   </div>
 </div>
 <footer>
@@ -230,16 +235,19 @@
 
 <script src="core.js"></script>
 <script src="questions.js"></script>
+<script src="paper.js"></script>
 <script src="toolbar.js"></script>
 <script>
   initCore();                     // core.js
   const hasDraft = loadDraft();   // core.js
   if (!hasDraft) {
-    questions.push(createEmptyQuestion()); // questions.js
+    newPaper(); // paper.js
+  } else {
+    renderQuestions();              // questions.js
+    updateSnapshotMeta();           // core.js
+    updateTotalMarks();             // questions.js
   }
   updateSchoolDeleteVisibility(); // core.js
-  renderQuestions();              // questions.js
-  updateSnapshotMeta();           // core.js
   updateMetaVisibilityForViewport(); // core.js
   updateMarksInfoFloating();      // core.js
   setInterval(saveDraft, 30000);  // core.js

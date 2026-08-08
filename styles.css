@@ -431,6 +431,31 @@ body.theme-dark .burger-btn img {
   border: 1px solid rgba(148,163,184,0.7);
 }
 
+.btn-paper {
+  background: #0ea5e9;
+  box-shadow: 0 4px 8px rgba(14, 165, 233, 0.35);
+}
+
+.btn-paper:hover { background: #0284c7; }
+
+.status-message {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  min-height: 20px;
+  transition: opacity 0.2s ease;
+}
+
+.status-success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.status-error {
+  background: rgba(220, 38, 38, 0.15);
+  color: #dc2626;
+}
+
 .marks-ok { color: #16a34a; }
 .marks-warning { color: var(--danger-color); }
 
