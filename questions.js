@@ -444,6 +444,13 @@ function openQuestionModal(question, index) {
   editor.focus();
 }
 
+function validateRender() {
+  const rendered = questionsContainer.querySelectorAll('.question-card').length;
+  if (rendered !== questions.length) {
+    console.error('Render regression: expected ' + questions.length + ' question cards, found ' + rendered);
+  }
+}
+
 // Main renderer
 function renderQuestions() {
   questionsContainer.innerHTML = '';
@@ -648,11 +655,11 @@ function renderQuestions() {
       optInput.oninput = e => { opt.text = e.target.value; };
       row.appendChild(optInput);
 
+      const optionLabel = String.fromCharCode(65 + oIdx);
       const removeBtn = document.createElement('button');
       removeBtn.innerHTML = '<img src="delete.svg" alt="Delete option">';
       removeBtn.setAttribute('aria-label', 'Remove option ' + optionLabel);
       removeBtn.onclick = async () => {
-        const optionLabel = String.fromCharCode(65 + oIdx);
         const ok = await showConfirm('Are you sure you want to delete option "' + optionLabel + '"?');
         if (!ok) return;
         q.options.splice(oIdx, 1);
@@ -728,6 +735,8 @@ function renderQuestions() {
   if (typeof toggleBottomToolbar === 'function') {
     toggleBottomToolbar();
   }
+
+  validateRender();
 }
 
 // Keyboard shortcuts: Alt+Q, Alt+A
