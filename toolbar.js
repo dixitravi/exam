@@ -26,9 +26,14 @@ if (openPaperBtn) openPaperBtn.onclick = () => openPaperInput.click();
 if (savePaperBtn) savePaperBtn.onclick = savePaper;
 
 if (openPaperInput) {
-  openPaperInput.onchange = e => {
+  openPaperInput.onchange = async e => {
     const file = e.target.files[0];
-    if (file) openPaper(file);
+    if (!file) return;
+    if (typeof hasUnsavedChanges === 'function' && hasUnsavedChanges()) {
+      const ok = await showConfirm('Unsaved Changes. You have unsaved changes. Do you want to continue?', 'Continue');
+      if (!ok) { e.target.value = ''; return; }
+    }
+    openPaper(file);
     e.target.value = '';
   };
 }
