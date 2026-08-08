@@ -315,7 +315,7 @@ function saveDraft() {
     const draft = {
       questions: questions.map(q => ({ ...q })),
       meta: Object.fromEntries(
-        Object.entries(metaFields).map(([k, v]) => [k, v.value])
+        Object.entries(metaFields).map(([k, v]) => [k, v ? v.value : ''])
       ),
       timestamp: Date.now()
     };
@@ -362,7 +362,7 @@ function loadDraft() {
 const debouncedSave = debounce(saveDraft, 1000);
 
 // Meta inputs wiring
-Object.values(metaFields).forEach(input => {
+Object.values(metaFields).filter(input => input && input.addEventListener).forEach(input => {
   input.addEventListener('input', () => {
     updateSnapshotMeta();
     updatePrintExamDetails();
