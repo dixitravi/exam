@@ -16,12 +16,7 @@ const printBtnBottom = document.getElementById('printBtnBottom');
 
 // Top toolbar: Add Question / Section
 addQuestionBtn.onclick = () => {
-  if (!currentSectionId && sections.length) currentSectionId = sections[0].id;
-  const q = createEmptyQuestion();
-  if (currentSectionId) q.sectionId = currentSectionId;
-  questions.push(q);
-  renderQuestions();
-  debouncedSave();
+  addQuestionOfSelectedType();
 };
 
 if (addSectionBtn) addSectionBtn.onclick = () => {

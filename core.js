@@ -348,14 +348,30 @@ function loadDraft() {
     if (!metaFields.className.value) metaFields.className.value = 'IV';
     if (!metaFields.classSection.value) metaFields.classSection.value = 'A';
 
-    questions = (data.questions || []).map(q => ({
-      ...q,
-      text: typeof sanitizeHtml === 'function' ? sanitizeHtml(q.text || '') : (q.text || ''),
-      options: Array.isArray(q.options) ? q.options.map(o => ({
-        ...o,
-        text: typeof sanitizeHtml === 'function' ? sanitizeHtml(o.text || '') : (o.text || '')
-      })) : []
-    }));
+    questions = (data.questions || []).map(q => {
+      const type = q.type || 'multiple';
+      const base = {
+        ...q,
+        type,
+        text: typeof sanitizeHtml === 'function' ? sanitizeHtml(q.text || '') : (q.text || '')
+      };
+      if (type === 'multiple') {
+        base.options = Array.isArray(q.options) ? q.options.map(o => ({
+          ...o,
+          text: typeof sanitizeHtml === 'function' ? sanitizeHtml(o.text || '') : (o.text || '')
+        })) : [];
+      } else if (type === 'truefalse') {
+        base.options = [{ text: 'True' }, { text: 'False' }];
+      } else if (type === 'fillblank') {
+        base.blanks = Array.isArray(q.blanks) ? q.blanks.map(b => ({
+          ...b,
+          answer: typeof sanitizeHtml === 'function' ? sanitizeHtml((b.answer || '').toString()) : (b.answer || '')
+        })) : [{ id: 'b-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9), answer: '' }];
+      } else if (type === 'short' || type === 'long') {
+        base.answer = typeof sanitizeHtml === 'function' ? sanitizeHtml((q.answer || '').toString()) : (q.answer || '');
+      }
+      return base;
+    });
 
     sections = (data.sections || []).map(s => ({
       ...s,
