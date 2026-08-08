@@ -7,17 +7,26 @@ const newPaperBtn = document.getElementById('newPaperBtn');
 const openPaperBtn = document.getElementById('openPaperBtn');
 const savePaperBtn = document.getElementById('savePaperBtn');
 const openPaperInput = document.getElementById('openPaperInput');
+const addSectionBtn = document.getElementById('addSectionBtn');
 
 const newPaperBtnBottom = document.getElementById('newPaperBtnBottom');
 const openPaperBtnBottom = document.getElementById('openPaperBtnBottom');
 const savePaperBtnBottom = document.getElementById('savePaperBtnBottom');
 const printBtnBottom = document.getElementById('printBtnBottom');
 
-// Top toolbar: Add Question
+// Top toolbar: Add Question / Section
 addQuestionBtn.onclick = () => {
-  questions.push(createEmptyQuestion());
+  if (!currentSectionId && sections.length) currentSectionId = sections[0].id;
+  const q = createEmptyQuestion();
+  if (currentSectionId) q.sectionId = currentSectionId;
+  questions.push(q);
   renderQuestions();
   debouncedSave();
+};
+
+if (addSectionBtn) addSectionBtn.onclick = () => {
+  addSection();
+  renderQuestions();
 };
 
 // New / Open / Save

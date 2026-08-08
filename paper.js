@@ -59,6 +59,7 @@ function normalizeQuestions(rawQuestions) {
     id: q.id || (Date.now() + Math.random()),
     text: sanitizeHtml((q.text || '').toString()),
     marks: Number(q.marks) || 0,
+    sectionId: q.sectionId || null,
     options: Array.isArray(q.options)
       ? q.options.map(o => ({ text: sanitizeHtml((o.text || '').toString()) }))
       : []
@@ -114,6 +115,7 @@ function validateAndNormalize(fileName, data) {
         duration: meta.duration !== undefined ? String(meta.duration) : '',
         maxMarks: meta.maxMarks !== undefined ? String(meta.maxMarks) : ''
       },
+      sections: Array.isArray(data.sections) ? data.sections : undefined,
       questions: normalizeQuestions(rawQuestions)
     }
   };
@@ -133,7 +135,36 @@ function loadPaper(paper) {
     metaFields[key].value = (paper.meta && paper.meta[key]) ? paper.meta[key] : '';
   });
 
-  questions = paper.questions || [];
+  if (Array.isArray(paper.sections) && paper.sections.length > 0) {
+    sections = paper.sections.map(s => ({
+      id: s.id || generateSectionId(),
+      name: s.name || 'SECTION',
+      type: s.type || 'Multiple Choice',
+      instructions: s.instructions || '',
+      questionIds: Array.isArray(s.questionIds) ? [...s.questionIds] : []
+    }));
+  } else {
+    const defaultSectionId = generateSectionId();
+    sections = [{
+      id: defaultSectionId,
+      name: 'SECTION A',
+      type: 'Multiple Choice',
+      instructions: '',
+      questionIds: (paper.questions || []).map(q => q.id)
+    }];
+  }
+  currentSectionId = sections[0].id;
+
+  questions = (paper.questions || []).map(q => ({
+    ...q,
+    sectionId: q.sectionId || currentSectionId
+  }));
+
+  const validSectionIds = new Set(sections.map(s => s.id));
+  questions.forEach(q => {
+    if (!q.sectionId || !validSectionIds.has(q.sectionId)) q.sectionId = currentSectionId;
+  });
+
   renderQuestions();
   updateSnapshotMeta();
   updatePrintExamDetails();
@@ -152,6 +183,15 @@ function newPaper() {
   };
 
   questions = [];
+  const defaultSectionId = generateSectionId();
+  sections = [{
+    id: defaultSectionId,
+    name: 'SECTION A',
+    type: 'Multiple Choice',
+    instructions: '',
+    questionIds: []
+  }];
+  currentSectionId = defaultSectionId;
 
   if (typeof setTodayDateAndDefaults === 'function') {
     setTodayDateAndDefaults();
@@ -162,7 +202,10 @@ function newPaper() {
   metaFields.classSection.value = 'A';
   metaFields.paperTitle.value = '';
 
-  questions.push(createEmptyQuestion());
+  const firstQuestion = createEmptyQuestion();
+  firstQuestion.sectionId = defaultSectionId;
+  sections[0].questionIds.push(firstQuestion.id);
+  questions.push(firstQuestion);
   renderQuestions();
   updateSnapshotMeta();
   updatePrintExamDetails();
@@ -187,6 +230,16 @@ async function savePaper() {
     Object.entries(metaFields).map(([k, v]) => [k, v ? v.value : ''])
   );
 
+  const sectionQuestionIds = {};
+  sections.forEach(s => { sectionQuestionIds[s.id] = []; });
+  questions.forEach(q => {
+    if (sectionQuestionIds[q.sectionId] !== undefined) {
+      sectionQuestionIds[q.sectionId].push(q.id);
+    } else if (sections[0]) {
+      sectionQuestionIds[sections[0].id].push(q.id);
+    }
+  });
+
   const paper = {
     version: 1,
     id: currentPaper.id || (Date.now() + Math.random()).toString(),
@@ -195,6 +248,7 @@ async function savePaper() {
     updatedAt: new Date().toISOString(),
     filename: currentPaper.filename,
     meta,
+    sections: sections.map(s => ({ ...s, questionIds: sectionQuestionIds[s.id] || [] })),
     questions: questions.map(q => ({ ...q }))
   };
 
@@ -329,7 +383,7 @@ function getCurrentState() {
   Object.keys(metaFields).forEach(key => {
     meta[key] = metaFields[key] ? metaFields[key].value : '';
   });
-  return { meta, questions };
+  return { meta, questions, sections, currentSectionId };
 }
 
 function markSaved() {
@@ -365,6 +419,16 @@ async function autoSave() {
     Object.entries(metaFields).map(([k, v]) => [k, v ? v.value : ''])
   );
 
+  const sectionQuestionIds = {};
+  sections.forEach(s => { sectionQuestionIds[s.id] = []; });
+  questions.forEach(q => {
+    if (sectionQuestionIds[q.sectionId] !== undefined) {
+      sectionQuestionIds[q.sectionId].push(q.id);
+    } else if (sections[0]) {
+      sectionQuestionIds[sections[0].id].push(q.id);
+    }
+  });
+
   const paper = {
     version: 1,
     id: currentPaper.id || (Date.now() + Math.random()).toString(),
@@ -373,6 +437,7 @@ async function autoSave() {
     updatedAt: new Date().toISOString(),
     filename: currentPaper.filename,
     meta,
+    sections: sections.map(s => ({ ...s, questionIds: sectionQuestionIds[s.id] || [] })),
     questions: questions.map(q => ({ ...q }))
   };
 

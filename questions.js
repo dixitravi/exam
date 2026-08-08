@@ -4,7 +4,8 @@
 
 // Basic question factory
 function createEmptyQuestion() {
-  return { id: Date.now() + Math.random(), text: '', marks: 0, options: [] };
+  const sectionId = currentSectionId || (sections[0] && sections[0].id) || null;
+  return { id: Date.now() + Math.random(), text: '', marks: 0, options: [], sectionId };
 }
 
 function sanitizeHtml(html) {
@@ -148,7 +149,8 @@ function makeDraggable() {
     ghostCard: null
   };
 
-  cards.forEach((card, idx) => {
+  cards.forEach((card) => {
+    const idx = parseInt(card.dataset.questionIndex, 10);
     card.draggable = false;
 
     const header = card.querySelector('.question-header');
@@ -248,10 +250,10 @@ function makeDraggable() {
     e.preventDefault();
 
     const allCards = Array.from(container.querySelectorAll('.question-card'));
-    let toIdx = null;
+    let targetCardIdx = null;
     allCards.forEach((c, index) => {
       if (c.classList.contains('drag-over')) {
-        toIdx = index;
+        targetCardIdx = index;
       }
       c.classList.remove('drag-over');
       c.classList.remove('dragging');
@@ -259,6 +261,7 @@ function makeDraggable() {
 
     document.body.classList.remove('dragging-mode');
 
+    const toIdx = targetCardIdx !== null ? parseInt(allCards[targetCardIdx].dataset.questionIndex, 10) : null;
     if (toIdx !== null &&
         toIdx !== touchDrag.fromIdx &&
         touchDrag.fromIdx >= 0 &&
@@ -451,18 +454,189 @@ function validateRender() {
   }
 }
 
+// Section helpers
+function generateSectionId() {
+  return 'sec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+}
+
+function addSection() {
+  if (!currentSectionId && sections.length) currentSectionId = sections[0].id;
+  const activeIndex = Math.max(0, sections.findIndex(s => s.id === currentSectionId));
+  const nextLetter = String.fromCharCode(65 + sections.length);
+  const newSection = {
+    id: generateSectionId(),
+    name: 'SECTION ' + nextLetter,
+    type: 'Multiple Choice',
+    instructions: '',
+    questionIds: []
+  };
+  sections.splice(activeIndex + 1, 0, newSection);
+  currentSectionId = newSection.id;
+  renderQuestions();
+  debouncedSave();
+}
+
+function moveSection(id, direction) {
+  const idx = sections.findIndex(s => s.id === id);
+  if (idx < 0) return;
+  if (direction === 'up' && idx > 0) {
+    [sections[idx], sections[idx - 1]] = [sections[idx - 1], sections[idx]];
+  } else if (direction === 'down' && idx < sections.length - 1) {
+    [sections[idx], sections[idx + 1]] = [sections[idx + 1], sections[idx]];
+  }
+  renderQuestions();
+  debouncedSave();
+}
+
+function deleteSection(id) {
+  const idx = sections.findIndex(s => s.id === id);
+  if (idx < 0) return;
+  if (sections.length <= 1) return;
+  const target = sections[idx - 1] || sections[idx + 1];
+  const removed = sections.splice(idx, 1)[0];
+  questions.forEach(q => {
+    if (q.sectionId === removed.id) q.sectionId = target.id;
+  });
+  if (currentSectionId === removed.id) currentSectionId = target.id;
+  renderQuestions();
+  debouncedSave();
+}
+
+function createSectionHeader(section) {
+  const header = document.createElement('div');
+  header.className = 'section-header' + (section.id === currentSectionId ? ' active-section' : '');
+  header.dataset.sectionId = section.id;
+
+  const printInfo = document.createElement('div');
+  printInfo.className = 'section-print';
+  printInfo.innerHTML = '<div class="section-print-name">' + (section.name || '') + '</div>' +
+    '<div class="section-print-meta">Type: ' + (section.type || '') +
+    (section.instructions ? ' | ' + section.instructions : '') + '</div>';
+
+  const controls = document.createElement('div');
+  controls.className = 'section-controls';
+
+  const top = document.createElement('div');
+  top.className = 'section-controls-top';
+
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.className = 'section-name-input';
+  nameInput.value = section.name || '';
+  nameInput.placeholder = 'Section name';
+  nameInput.oninput = e => { section.name = e.target.value; };
+
+  const typeSelect = document.createElement('select');
+  typeSelect.className = 'section-type-select';
+  ['Multiple Choice', 'Short Answer', 'Long Answer', 'Fill in the Blanks', 'True/False', 'Match the Following'].forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = t;
+    if (section.type === t) opt.selected = true;
+    typeSelect.appendChild(opt);
+  });
+  typeSelect.onchange = e => { section.type = e.target.value; };
+
+  const instructions = document.createElement('textarea');
+  instructions.className = 'section-instructions';
+  instructions.placeholder = 'Instructions for this section...';
+  instructions.value = section.instructions || '';
+  instructions.oninput = e => { section.instructions = e.target.value; };
+
+  top.appendChild(nameInput);
+  top.appendChild(typeSelect);
+
+  const actions = document.createElement('div');
+  actions.className = 'section-actions';
+
+  const addQBtn = document.createElement('button');
+  addQBtn.type = 'button';
+  addQBtn.className = 'section-action-btn';
+  addQBtn.textContent = '+ Question';
+  addQBtn.title = 'Add question to this section';
+  addQBtn.onclick = (e) => {
+    e.stopPropagation();
+    currentSectionId = section.id;
+    const q = createEmptyQuestion();
+    q.sectionId = section.id;
+    questions.push(q);
+    renderQuestions();
+    debouncedSave();
+  };
+
+  const upBtn = document.createElement('button');
+  upBtn.type = 'button';
+  upBtn.className = 'section-action-btn';
+  upBtn.textContent = '↑';
+  upBtn.title = 'Move section up';
+  upBtn.onclick = (e) => { e.stopPropagation(); moveSection(section.id, 'up'); };
+
+  const downBtn = document.createElement('button');
+  downBtn.type = 'button';
+  downBtn.className = 'section-action-btn';
+  downBtn.textContent = '↓';
+  downBtn.title = 'Move section down';
+  downBtn.onclick = (e) => { e.stopPropagation(); moveSection(section.id, 'down'); };
+
+  const delBtn = document.createElement('button');
+  delBtn.type = 'button';
+  delBtn.className = 'section-action-btn section-delete-btn';
+  delBtn.textContent = '×';
+  delBtn.title = 'Delete section';
+  delBtn.onclick = (e) => { e.stopPropagation(); deleteSection(section.id); };
+
+  const selectBtn = document.createElement('button');
+  selectBtn.type = 'button';
+  selectBtn.className = 'section-action-btn section-select-btn';
+  selectBtn.textContent = 'Select';
+  selectBtn.title = 'Select this section for main Add Question';
+  selectBtn.onclick = (e) => { e.stopPropagation(); currentSectionId = section.id; renderQuestions(); };
+
+  actions.appendChild(addQBtn);
+  actions.appendChild(upBtn);
+  actions.appendChild(downBtn);
+  actions.appendChild(delBtn);
+  actions.appendChild(selectBtn);
+
+  controls.appendChild(top);
+  controls.appendChild(instructions);
+  controls.appendChild(actions);
+
+  header.appendChild(printInfo);
+  header.appendChild(controls);
+
+  header.addEventListener('click', (e) => {
+    if (e.target.closest('input, select, textarea, button')) return;
+    currentSectionId = section.id;
+    renderQuestions();
+  });
+
+  return header;
+}
+
 // Main renderer
 function renderQuestions() {
   questionsContainer.innerHTML = '';
-  questions.forEach((q, idx) => {
-    const card = document.createElement('div');
-    card.className = 'question-card';
+  const validSectionIds = new Set(sections.map(s => s.id));
+  let globalQuestionCount = 1;
+  sections.forEach((section, sectionIndex) => {
+    const sectionHeader = createSectionHeader(section);
+    questionsContainer.appendChild(sectionHeader);
 
-    const header = document.createElement('div');
-    header.className = 'question-header';
+    questions.forEach((q, idx) => {
+      const belongsToSection = q.sectionId === section.id || (sectionIndex === 0 && !validSectionIds.has(q.sectionId));
+      if (!belongsToSection) return;
 
-    const left = document.createElement('div');
-    const qLabelText = 'Q' + (idx + 1);
+      const displayIndex = globalQuestionCount++;
+      const card = document.createElement('div');
+      card.className = 'question-card';
+      card.dataset.questionIndex = String(idx);
+
+      const header = document.createElement('div');
+      header.className = 'question-header';
+
+      const left = document.createElement('div');
+      const qLabelText = 'Q' + displayIndex;
 
     const qLabelSpan = document.createElement('span');
     qLabelSpan.className = 'q-label';
@@ -472,7 +646,7 @@ function renderQuestions() {
     expandBtn.src = 'expand.svg';
     expandBtn.alt = 'Expand question';
     expandBtn.className = 'expand-icon';
-    expandBtn.onclick = () => openQuestionModal(q, idx);
+    expandBtn.onclick = () => openQuestionModal(q, displayIndex - 1);
 
     left.appendChild(qLabelSpan);
     left.appendChild(expandBtn);
@@ -681,8 +855,7 @@ function renderQuestions() {
       q.options.push({ text: '' });
       renderQuestions();
       setTimeout(() => {
-        const allCards = document.querySelectorAll('.question-card');
-        const thisCard = allCards[idx];
+        const thisCard = card;
         if (!thisCard) return;
         const inputs = thisCard.querySelectorAll('.option-row input[type="text"]');
         const lastInput = inputs[inputs.length - 1];
@@ -728,6 +901,7 @@ function renderQuestions() {
     }
 
     questionsContainer.appendChild(card);
+  });
   });
 
   updateTotalMarks();
