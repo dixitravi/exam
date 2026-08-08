@@ -34,6 +34,12 @@ if (openPaperBtn) openPaperBtn.onclick = async () => {
   }
 };
 if (savePaperBtn) savePaperBtn.onclick = savePaper;
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+    e.preventDefault();
+    if (printBtn && printBtn.click) printBtn.click();
+  }
+});
 
 if (openPaperInput) {
   openPaperInput.onchange = async e => {

@@ -1579,3 +1579,37 @@ img.resizing {
   text-overflow: ellipsis;
   max-width: 220px;
 }
+
+/* Alternate question card colors */
+.question-card:nth-child(odd) { background: #f0f7ff; }
+.question-card:nth-child(even) { background: #f7f8fa; }
+.theme-dark .question-card:nth-child(odd) { background: #1a2639; }
+.theme-dark .question-card:nth-child(even) { background: #151e2b; }
+@media print {
+  .question-card,
+  .question-card:nth-child(odd),
+  .question-card:nth-child(even) { background: #ffffff !important; }
+}
+
+/* Desktop print button */
+.btn-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #f59e0b;
+  color: #ffffff;
+  font-weight: 500;
+  height: 34px;
+}
+
+@media (max-width: 768px) {
+  .btn-print { display: none; }
+  #addQuestionBtn { display: none; }
+  #burgerMenu { display: none; }
+  #burgerBtn:focus + #burgerMenu,
+  #burgerMenu.open { display: flex; }
+}
