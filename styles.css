@@ -1790,3 +1790,232 @@ img.resizing {
     margin-bottom: 4px;
   }
 }
+
+/* Question type badge and type-specific controls */
+.question-type-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted, #64748b);
+  background: var(--accent-soft, rgba(56,189,248,0.1));
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.truefalse-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.truefalse-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: default;
+}
+
+.short-answer-placeholder,
+.long-answer-placeholder {
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-muted, #94a3b8);
+  font-size: 13px;
+  resize: vertical;
+}
+
+.short-answer-placeholder:disabled,
+.long-answer-placeholder:disabled {
+  opacity: 0.85;
+  cursor: default;
+}
+
+.fillblank-rows {
+  margin-top: 6px;
+}
+
+.fillblank-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.fillblank-row .label {
+  font-size: 13px;
+  width: 64px;
+}
+
+.fillblank-row input[type="text"] {
+  flex: 1;
+  max-width: 260px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-color);
+  font-size: 13px;
+}
+
+.remove-blank {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.remove-blank img {
+  height: 24px;
+  width: 24px;
+  display: block;
+}
+
+body.theme-dark .remove-blank img {
+  filter: brightness(0) invert(1);
+}
+
+/* Question type selector modal */
+.type-selector-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 60;
+}
+
+.type-selector-modal {
+  background: var(--card-bg, #ffffff);
+  color: var(--text-color, #0f172a);
+  border-radius: 12px;
+  padding: 18px 20px;
+  max-width: 320px;
+  width: 90%;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+}
+
+.type-selector-modal h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.type-selector-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.type-selector-option,
+.type-selector-cancel {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  background: var(--input-bg, #f8fafc);
+  color: var(--text-color, #0f172a);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.type-selector-option:hover {
+  background: var(--accent-soft, rgba(56,189,248,0.15));
+}
+
+.type-selector-cancel {
+  text-align: center;
+  color: var(--text-muted, #64748b);
+}
+
+/* Print-only preview */
+.print-preview {
+  display: none;
+}
+
+.print-question-text {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.print-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: 4px;
+}
+
+.print-option-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.print-option-label {
+  font-weight: 500;
+}
+
+.print-short-blank {
+  display: inline-block;
+  width: 180px;
+  border-bottom: 1px solid #000;
+  margin-top: 8px;
+  height: 18px;
+}
+
+.print-long-box {
+  width: 100%;
+  min-height: 96px;
+  border: 1px solid #000;
+  margin-top: 8px;
+  background: repeating-linear-gradient(
+    transparent,
+    transparent 23px,
+    #ccc 23px,
+    #ccc 24px
+  );
+}
+
+.print-fillblank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 6px;
+}
+
+.print-blank-line {
+  font-size: 13px;
+  letter-spacing: 2px;
+  min-width: 80px;
+}
+
+@media print {
+  .print-preview {
+    display: block;
+  }
+  .question-editor,
+  .question-answer,
+  .question-type-badge,
+  .expand-icon,
+  .question-actions,
+  .question-card button,
+  .question-card .remove-blank {
+    display: none !important;
+  }
+  .question-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

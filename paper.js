@@ -55,15 +55,33 @@ function showStatus(message, type) {
 
 function normalizeQuestions(rawQuestions) {
   if (!Array.isArray(rawQuestions)) return [];
-  return rawQuestions.map(q => ({
-    id: q.id || (Date.now() + Math.random()),
-    text: sanitizeHtml((q.text || '').toString()),
-    marks: Number(q.marks) || 0,
-    sectionId: q.sectionId || null,
-    options: Array.isArray(q.options)
-      ? q.options.map(o => ({ text: sanitizeHtml((o.text || '').toString()) }))
-      : []
-  }));
+  return rawQuestions.map((q, i) => {
+    const type = (q && q.type) ? q.type : 'multiple';
+    const base = {
+      id: q.id || (Date.now() + Math.random() + i),
+      text: sanitizeHtml((q.text || '').toString()),
+      marks: Number(q.marks) || 0,
+      sectionId: q.sectionId || null,
+      type
+    };
+    if (type === 'multiple') {
+      base.options = Array.isArray(q.options)
+        ? q.options.map(o => ({ text: sanitizeHtml((o.text || '').toString()) }))
+        : [];
+    } else if (type === 'truefalse') {
+      base.options = [{ text: 'True' }, { text: 'False' }];
+    } else if (type === 'fillblank') {
+      base.blanks = Array.isArray(q.blanks)
+        ? q.blanks.map(b => ({
+            id: b.id || ('b-' + Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 9)),
+            answer: typeof b.answer === 'string' ? sanitizeHtml(b.answer) : ''
+          }))
+        : [{ id: 'b-' + Date.now() + '-' + i, answer: '' }];
+    } else if (type === 'short' || type === 'long') {
+      base.answer = typeof q.answer === 'string' ? sanitizeHtml(q.answer) : '';
+    }
+    return base;
+  });
 }
 
 function validateAndNormalize(fileName, data) {
@@ -157,7 +175,8 @@ function loadPaper(paper) {
 
   questions = (paper.questions || []).map(q => ({
     ...q,
-    sectionId: q.sectionId || currentSectionId
+    sectionId: q.sectionId || currentSectionId,
+    type: q.type || 'multiple'
   }));
 
   const validSectionIds = new Set(sections.map(s => s.id));
