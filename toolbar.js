@@ -1,7 +1,17 @@
 // ===== TOOLBAR.JS =====
-// Depends on: questions, metaFields, questionsContainer,
-// addQuestionBtn, exportBtn, importTrigger, importInput, printBtn,
-// updateSnapshotMeta, updatePrintExamDetails, renderQuestions, updateTotalMarks, debouncedSave
+// Depends on: questions, addQuestionBtn, printBtn,
+// newPaper, openPaper, savePaper,
+// renderQuestions, debouncedSave
+
+const newPaperBtn = document.getElementById('newPaperBtn');
+const openPaperBtn = document.getElementById('openPaperBtn');
+const savePaperBtn = document.getElementById('savePaperBtn');
+const openPaperInput = document.getElementById('openPaperInput');
+
+const newPaperBtnBottom = document.getElementById('newPaperBtnBottom');
+const openPaperBtnBottom = document.getElementById('openPaperBtnBottom');
+const savePaperBtnBottom = document.getElementById('savePaperBtnBottom');
+const printBtnBottom = document.getElementById('printBtnBottom');
 
 // Top toolbar: Add Question
 addQuestionBtn.onclick = () => {
@@ -10,76 +20,18 @@ addQuestionBtn.onclick = () => {
   debouncedSave();
 };
 
-// Export
-exportBtn.onclick = () => {
-  const data = {
-    meta: {
-      schoolName: metaFields.schoolName.value,
-      subject: metaFields.subject.value,
-      className: metaFields.className.value,
-      classSection: metaFields.classSection.value,
-      examDate: metaFields.examDate.value
-        ? formatDateDDMMYYYY(metaFields.examDate.value)
-        : '',
-      duration: metaFields.duration.value,
-      maxMarks: metaFields.maxMarks.value
-    },
-    questions
+// New / Open / Save
+if (newPaperBtn) newPaperBtn.onclick = newPaper;
+if (openPaperBtn) openPaperBtn.onclick = () => openPaperInput.click();
+if (savePaperBtn) savePaperBtn.onclick = savePaper;
+
+if (openPaperInput) {
+  openPaperInput.onchange = e => {
+    const file = e.target.files[0];
+    if (file) openPaper(file);
+    e.target.value = '';
   };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = (metaFields.subject.value || 'question-paper') + '.ved';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-};
-
-// Import
-importTrigger.onclick = () => importInput.click();
-
-importInput.onchange = e => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = evt => {
-    try {
-      const data = JSON.parse(evt.target.result);
-
-      if (!data || typeof data !== 'object') {
-        throw new Error('Invalid file structure');
-      }
-
-      if (data.meta) {
-        Object.keys(data.meta).forEach(key => {
-          if (metaFields[key]) {
-            metaFields[key].value = data.meta[key] || '';
-          }
-        });
-      }
-
-      questions = (Array.isArray(data.questions) ? data.questions : []).map(q => ({
-        id: q.id || Date.now() + Math.random(),
-        text: sanitizeHtml((q.text || '').toString()),
-        marks: Number(q.marks) || 0,
-        options: Array.isArray(q.options)
-          ? q.options.map(o => ({ text: sanitizeHtml((o.text || '').toString()) }))
-          : []
-      }));
-
-      renderQuestions();
-      updateSnapshotMeta();
-      updateTotalMarks();
-      alert('File imported successfully!');
-    } catch (err) {
-      alert('Invalid file: ' + (err.message || 'Corrupted file'));
-    }
-  };
-  reader.onerror = () => alert('Failed to read file');
-  reader.readAsText(file);
-  e.target.value = '';
-};
+}
 
 // Print
 printBtn.onclick = () => {
@@ -90,16 +42,13 @@ printBtn.onclick = () => {
 
 // Bottom toolbar
 const toolbarBottom = document.getElementById('toolbarBottom');
-const addQuestionBtnBottom = document.getElementById('addQuestionBtnBottom');
-const exportBtnBottom = document.getElementById('exportBtnBottom');
-const importBtnBottom = document.getElementById('importBtnBottom');
-const printBtnBottom = document.getElementById('printBtnBottom');
 
 // Wire bottom toolbar to same actions (if present)
 if (addQuestionBtnBottom) addQuestionBtnBottom.onclick = addQuestionBtn.onclick;
-if (exportBtnBottom)     exportBtnBottom.onclick     = exportBtn.onclick;
-if (importBtnBottom)     importBtnBottom.onclick     = () => importInput.click();
-if (printBtnBottom)      printBtnBottom.onclick      = printBtn.onclick;
+if (newPaperBtnBottom)     newPaperBtnBottom.onclick     = newPaper;
+if (openPaperBtnBottom)    openPaperBtnBottom.onclick    = () => openPaperInput.click();
+if (savePaperBtnBottom)    savePaperBtnBottom.onclick    = savePaper;
+if (printBtnBottom)        printBtnBottom.onclick        = printBtn.onclick;
 
 // Show/hide bottom toolbar based on question count
 function toggleBottomToolbar() {
