@@ -263,6 +263,7 @@ function updateSnapshotMeta() {
 }
 
 function updatePrintExamDetails() {
+  if (typeof renderQuestions === 'function') renderQuestions();
   const container = document.getElementById('printExamDetails');
   if (!container) return;
   container.innerHTML = '';
