@@ -160,6 +160,7 @@ function newPaper() {
   metaFields.subject.value = '';
   metaFields.className.value = 'IV';
   metaFields.classSection.value = 'A';
+  metaFields.paperTitle.value = '';
 
   questions.push(createEmptyQuestion());
   renderQuestions();
@@ -357,6 +358,44 @@ async function onNewPaperRequested() {
   newPaper();
 }
 
+async function autoSave() {
+  if (!hasUnsavedChanges()) return;
+
+  const meta = Object.fromEntries(
+    Object.entries(metaFields).map(([k, v]) => [k, v.value])
+  );
+
+  const paper = {
+    version: 1,
+    id: currentPaper.id || (Date.now() + Math.random()).toString(),
+    name: currentPaper.name || generateBaseName(),
+    createdAt: currentPaper.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    filename: currentPaper.filename,
+    meta,
+    questions: questions.map(q => ({ ...q }))
+  };
+
+  if (fileHandle) {
+    const granted = await verifyFilePermission(fileHandle, true);
+    if (!granted) return;
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(paper, null, 2));
+    await writable.close();
+    currentPaper.updatedAt = paper.updatedAt;
+    markSaved();
+    showStatus('Auto Saved', 'success');
+    return;
+  }
+
+  try {
+    localStorage.setItem('exam_autosave_draft', JSON.stringify({ paper, savedAt: new Date().toISOString() }));
+    markSaved();
+    showStatus('Auto Saved', 'success');
+  } catch (err) {
+    // storage full or unavailable
+  }
+}
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
     e.preventDefault();
@@ -366,3 +405,4 @@ document.addEventListener('keydown', e => {
 
 document.addEventListener('input', updateSaveButtonState);
 document.addEventListener('change', updateSaveButtonState);
+setInterval(autoSave, 10000);

@@ -14,6 +14,7 @@ const maxMarksInput = document.getElementById('maxMarks');
 
 const metaFields = {
   schoolName: document.getElementById('schoolName'),
+  paperTitle: document.getElementById('paperTitle'),
   subject: document.getElementById('subject'),
   className: document.getElementById('className'),
   classSection: document.getElementById('classSection'),
@@ -263,6 +264,12 @@ function updatePrintExamDetails() {
   const container = document.getElementById('printExamDetails');
   if (!container) return;
   container.innerHTML = '';
+  if (metaFields.paperTitle && metaFields.paperTitle.value) {
+    const title = document.createElement('h2');
+    title.className = 'print-paper-title';
+    title.textContent = metaFields.paperTitle.value;
+    container.appendChild(title);
+  }
 
   const rows = [
     { label: 'Subject', value: metaFields.subject.value },

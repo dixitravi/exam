@@ -1613,3 +1613,29 @@ img.resizing {
   #burgerBtn:focus + #burgerMenu,
   #burgerMenu.open { display: flex; }
 }
+
+/* Paper title */
+.paper-title-wrap {
+  margin: 16px 0 8px;
+}
+.paper-title-wrap label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+.paper-title-wrap input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 15px;
+}
+.print-paper-title {
+  text-align: center;
+  font-size: 20px;
+  margin-bottom: 10px;
+}
