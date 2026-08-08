@@ -1565,3 +1565,7 @@ img.resizing {
     display: block;
   }
 }
+
+#confirmMessage {
+  white-space: pre-wrap;
+}
