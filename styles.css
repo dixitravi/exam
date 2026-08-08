@@ -431,6 +431,176 @@ body.theme-dark .burger-btn img {
   border: 1px solid rgba(148,163,184,0.7);
 }
 
+/* ===== Developer Diagnostics Panel ===== */
+.diagnostics-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: #0f172a;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.diagnostics-badge {
+  background: #dc2626;
+  color: #fff;
+  border-radius: 999px;
+  min-width: 18px;
+  height: 18px;
+  font-size: 10px;
+  font-weight: 700;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.diagnostics-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(15, 23, 42, 0.65);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.diagnostics-modal-content {
+  background: var(--card-bg, #fff);
+  color: var(--text-color, #0f172a);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.4);
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.diagnostics-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-color, #cbd5e1);
+}
+
+.diagnostics-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.diagnostics-close {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-color, #0f172a);
+}
+
+.diagnostics-list {
+  overflow-y: auto;
+  padding: 12px 18px;
+  max-height: 60vh;
+}
+
+.diagnostics-log {
+  border-left: 4px solid #64748b;
+  background: var(--accent-soft, #f1f5f9);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.diagnostics-log-error {
+  border-left-color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.diagnostics-log-warning {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.diagnostics-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.diagnostics-log-type {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+
+.diagnostics-log-time {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.diagnostics-log-message {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 6px;
+}
+
+.diagnostics-log-source {
+  color: #64748b;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.diagnostics-log-stack {
+  background: rgba(15, 23, 42, 0.05);
+  border-radius: 4px;
+  padding: 8px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-size: 11px;
+  margin: 0;
+}
+
+.diagnostics-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border-color, #cbd5e1);
+}
+
+.diagnostics-action-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  background: var(--card-bg, #fff);
+  color: var(--text-color, #0f172a);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.diagnostics-action-btn-danger {
+  background: #dc2626;
+  color: #fff;
+  border-color: #dc2626;
+}
+
 .btn-paper {
   background: #0ea5e9;
   box-shadow: 0 4px 8px rgba(14, 165, 233, 0.35);
