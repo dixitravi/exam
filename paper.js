@@ -4,6 +4,8 @@
 // updateSnapshotMeta, updatePrintExamDetails, updateTotalMarks, sanitizeHtml,
 // setTodayDateAndDefaults (core.js)
 
+let fileHandle = null;
+
 let currentPaper = {
   id: null,
   name: '',
@@ -137,7 +139,6 @@ function loadPaper(paper) {
   updatePrintExamDetails();
   updateTotalMarks();
   showStatus('Opened: ' + currentPaper.name, 'success');
-  markSaved();
 }
 
 function newPaper() {
@@ -165,6 +166,7 @@ function newPaper() {
   updateSnapshotMeta();
   updatePrintExamDetails();
   updateTotalMarks();
+  fileHandle = null;
   showStatus('New paper created', 'success');
   markSaved();
 }
@@ -179,32 +181,75 @@ function downloadPaper(paper, filename) {
   document.body.removeChild(a);
 }
 
-function savePaper() {
-  const name = currentPaper.name || window.prompt('Save paper as:', 'Untitled paper');
-  if (name === null || name.trim() === '') return;
-
-  currentPaper.name = name.trim();
-  if (!currentPaper.id) currentPaper.id = (Date.now() + Math.random()).toString();
-
-  const now = new Date().toISOString();
-  if (!currentPaper.createdAt) currentPaper.createdAt = now;
-  currentPaper.updatedAt = now;
-
+async function savePaper() {
   const meta = Object.fromEntries(
     Object.entries(metaFields).map(([k, v]) => [k, v.value])
   );
 
   const paper = {
     version: 1,
-    id: currentPaper.id,
-    name: currentPaper.name,
-    createdAt: currentPaper.createdAt,
-    updatedAt: currentPaper.updatedAt,
+    id: currentPaper.id || (Date.now() + Math.random()).toString(),
+    name: currentPaper.name || generateBaseName(),
+    createdAt: currentPaper.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    filename: currentPaper.filename,
     meta,
     questions: questions.map(q => ({ ...q }))
   };
 
-  const filename = sanitizeFilename(currentPaper.name) + '.json';
+  if (fileHandle) {
+    const granted = await verifyFilePermission(fileHandle, true);
+    if (!granted) {
+      showStatus('Write permission denied', 'error');
+      return;
+    }
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(paper, null, 2));
+    await writable.close();
+    currentPaper.id = paper.id;
+    currentPaper.name = paper.name;
+    currentPaper.createdAt = paper.createdAt;
+    currentPaper.updatedAt = paper.updatedAt;
+    showStatus('Saved: ' + currentPaper.filename, 'success');
+    markSaved();
+    return;
+  }
+
+  if ('showSaveFilePicker' in window) {
+    const suggested = currentPaper.filename || (generateBaseName() + '.json');
+    try {
+      const newHandle = await window.showSaveFilePicker({
+        suggestedName: suggested,
+        types: [{
+          description: 'JSON Paper Files',
+          accept: { 'application/json': ['.json', '.ved'] }
+        }]
+      });
+      fileHandle = newHandle;
+      currentPaper.filename = newHandle.name;
+      currentPaper.name = newHandle.name;
+      const writable = await newHandle.createWritable();
+      await writable.write(JSON.stringify(paper, null, 2));
+      await writable.close();
+      currentPaper.id = paper.id;
+      currentPaper.createdAt = paper.createdAt;
+      currentPaper.updatedAt = paper.updatedAt;
+      showStatus('Saved: ' + currentPaper.filename, 'success');
+      markSaved();
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        showStatus('Save failed: ' + err.message, 'error');
+      }
+    }
+    return;
+  }
+
+  const filename = currentPaper.filename || (generateBaseName() + '.json');
+  currentPaper.filename = filename;
+  currentPaper.name = currentPaper.name || generateBaseName();
+  currentPaper.id = paper.id;
+  currentPaper.createdAt = paper.createdAt;
+  currentPaper.updatedAt = paper.updatedAt;
   downloadPaper(paper, filename);
   showStatus('Saved: ' + filename, 'success');
   markSaved();
@@ -223,12 +268,57 @@ function openPaper(file) {
         return;
       }
       loadPaper(result.paper);
+      fileHandle = null;
+      currentPaper.filename = file.name;
+      markSaved();
     } catch (err) {
       showStatus('Invalid file: ' + (err.message || 'Could not parse JSON.'), 'error');
     }
   };
   reader.onerror = () => showStatus('Failed to read file.', 'error');
   reader.readAsText(file);
+}
+
+async function verifyFilePermission(handle, readWrite) {
+  const options = {};
+  if (readWrite) options.mode = 'readwrite';
+  if ((await handle.queryPermission(options)) === 'granted') return true;
+  if ((await handle.requestPermission(options)) === 'granted') return true;
+  return false;
+}
+
+async function openPaperFromPicker() {
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [{
+        description: 'JSON Paper Files',
+        accept: { 'application/json': ['.json', '.ved'] }
+      }]
+    });
+    const file = await handle.getFile();
+    const data = JSON.parse(await file.text());
+    const result = validateAndNormalize(handle.name, data);
+    if (!result.valid) {
+      showStatus(result.error, 'error');
+      return;
+    }
+    loadPaper(result.paper);
+    fileHandle = handle;
+    currentPaper.filename = handle.name;
+    markSaved();
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      showStatus('Open failed: ' + err.message, 'error');
+    }
+  }
+}
+
+function updateCurrentFileInfo() {
+  const el = document.getElementById('currentFileInfo');
+  if (!el) return;
+  const filename = currentPaper.filename || 'Untitled paper';
+  const dirty = hasUnsavedChanges() ? ' *' : '';
+  el.innerHTML = '📄 ' + filename + dirty;
 }
 
 let savedSnapshot = null;
@@ -253,12 +343,10 @@ function hasUnsavedChanges() {
 
 function updateSaveButtonState() {
   const btn = document.getElementById('savePaperBtn');
-  if (!btn) return;
-  if (hasUnsavedChanges()) {
-    btn.innerHTML = '<span class=\"icon\">🔴</span><span>Save</span>';
-  } else {
-    btn.innerHTML = '<span class=\"icon\">💾</span><span>Save</span>';
+  if (btn) {
+    btn.innerHTML = hasUnsavedChanges() ? '<span class="icon">🔴</span><span>Save</span>' : '<span class="icon">💾</span><span>Save</span>';
   }
+  updateCurrentFileInfo();
 }
 
 async function onNewPaperRequested() {
