@@ -8,7 +8,9 @@ let currentPaper = {
   id: null,
   name: '',
   createdAt: null,
-  updatedAt: null
+  updatedAt: null,
+  version: null,
+  filename: ''
 };
 
 function sanitizeFilename(name) {
@@ -16,6 +18,25 @@ function sanitizeFilename(name) {
     .replace(/[\\/?:*"<>|]/g, '_')
     .replace(/\s+/g, ' ')
     .trim() || 'question-paper';
+}
+
+function formatDateLocal() {
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, '0');
+  const d = String(today.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + d;
+}
+
+function generateBaseName() {
+  const subject = (metaFields.subject.value || '').trim().replace(/\s+/g, '_') || 'ExamPaper';
+  const className = (metaFields.className.value || '').trim();
+  const rawDate = metaFields.examDate.value;
+  const date = rawDate ? rawDate : formatDateLocal();
+  let base = subject;
+  if (className) base += '_' + className;
+  base += '_' + date;
+  return sanitizeFilename(base);
 }
 
 function showStatus(message, type) {
@@ -101,7 +122,9 @@ function loadPaper(paper) {
     id: paper.id || null,
     name: paper.name || '',
     createdAt: paper.createdAt || null,
-    updatedAt: paper.updatedAt || null
+    updatedAt: paper.updatedAt || null,
+    version: paper.version || null,
+    filename: paper.filename || ''
   };
 
   Object.keys(metaFields).forEach(key => {
@@ -122,7 +145,9 @@ function newPaper() {
     id: null,
     name: '',
     createdAt: null,
-    updatedAt: null
+    updatedAt: null,
+    version: null,
+    filename: ''
   };
 
   questions = [];
@@ -218,6 +243,7 @@ function getCurrentState() {
 
 function markSaved() {
   savedSnapshot = JSON.parse(JSON.stringify(getCurrentState()));
+  updateSaveButtonState();
 }
 
 function hasUnsavedChanges() {
@@ -225,10 +251,30 @@ function hasUnsavedChanges() {
   return JSON.stringify(getCurrentState()) !== JSON.stringify(savedSnapshot);
 }
 
+function updateSaveButtonState() {
+  const btn = document.getElementById('savePaperBtn');
+  if (!btn) return;
+  if (hasUnsavedChanges()) {
+    btn.innerHTML = '<span class=\"icon\">🔴</span><span>Save</span>';
+  } else {
+    btn.innerHTML = '<span class=\"icon\">💾</span><span>Save</span>';
+  }
+}
+
 async function onNewPaperRequested() {
   if (hasUnsavedChanges()) {
-    const ok = await showConfirm('Unsaved Changes. You have unsaved changes in the current paper. Creating a new paper will discard the current work.', 'Create New Paper');
+    const ok = await showConfirm('Unsaved Changes. You have unsaved changes. Do you want to continue?', 'Continue');
     if (!ok) return;
   }
   newPaper();
 }
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+    e.preventDefault();
+    savePaper();
+  }
+});
+
+document.addEventListener('input', updateSaveButtonState);
+document.addEventListener('change', updateSaveButtonState);
