@@ -184,7 +184,7 @@ function downloadPaper(paper, filename) {
 
 async function savePaper() {
   const meta = Object.fromEntries(
-    Object.entries(metaFields).map(([k, v]) => [k, v.value])
+    Object.entries(metaFields).map(([k, v]) => [k, v ? v.value : ''])
   );
 
   const paper = {
@@ -362,7 +362,7 @@ async function autoSave() {
   if (!hasUnsavedChanges()) return;
 
   const meta = Object.fromEntries(
-    Object.entries(metaFields).map(([k, v]) => [k, v.value])
+    Object.entries(metaFields).map(([k, v]) => [k, v ? v.value : ''])
   );
 
   const paper = {
