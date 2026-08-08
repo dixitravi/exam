@@ -129,9 +129,10 @@ function newPaper() {
   if (typeof setTodayDateAndDefaults === 'function') {
     setTodayDateAndDefaults();
   }
+  metaFields.schoolName.value = 'Ved Home Classes';
   metaFields.subject.value = '';
-  metaFields.className.value = '';
-  metaFields.classSection.value = '';
+  metaFields.className.value = 'IV';
+  metaFields.classSection.value = 'A';
 
   questions.push(createEmptyQuestion());
   renderQuestions();
