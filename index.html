@@ -237,6 +237,7 @@
 <script src="questions.js"></script>
 <script src="paper.js"></script>
 <script src="toolbar.js"></script>
+<script src="diagnostics.js"></script>
 <script>
   initCore();                     // core.js
   const hasDraft = loadDraft();   // core.js
@@ -250,6 +251,7 @@
   updateSchoolDeleteVisibility(); // core.js
   updateMetaVisibilityForViewport(); // core.js
   updateMarksInfoFloating();      // core.js
+  initDiagnostics();              // diagnostics.js
   setInterval(saveDraft, 30000);  // core.js
   window.addEventListener('beforeunload', saveDraft);
 </script>
