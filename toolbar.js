@@ -22,7 +22,17 @@ addQuestionBtn.onclick = () => {
 
 // New / Open / Save
 if (newPaperBtn) newPaperBtn.onclick = onNewPaperRequested;
-if (openPaperBtn) openPaperBtn.onclick = () => openPaperInput.click();
+if (openPaperBtn) openPaperBtn.onclick = async () => {
+  if (typeof hasUnsavedChanges === 'function' && hasUnsavedChanges()) {
+    const ok = await showConfirm('Unsaved Changes. You have unsaved changes. Do you want to continue?', 'Continue');
+    if (!ok) return;
+  }
+  if ('showOpenFilePicker' in window) {
+    await openPaperFromPicker();
+  } else {
+    openPaperInput.click();
+  }
+};
 if (savePaperBtn) savePaperBtn.onclick = savePaper;
 
 if (openPaperInput) {
