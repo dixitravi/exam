@@ -331,6 +331,10 @@ function loadDraft() {
       if (metaFields[key]) metaFields[key].value = value || '';
     });
 
+    if (!metaFields.schoolName.value) metaFields.schoolName.value = 'Ved Home Classes';
+    if (!metaFields.className.value) metaFields.className.value = 'IV';
+    if (!metaFields.classSection.value) metaFields.classSection.value = 'A';
+
     questions = (data.questions || []).map(q => ({
       ...q,
       text: typeof sanitizeHtml === 'function' ? sanitizeHtml(q.text || '') : (q.text || ''),
