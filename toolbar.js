@@ -16,7 +16,7 @@ const printBtnBottom = document.getElementById('printBtnBottom');
 const printSettingsPanel = document.getElementById('printSettingsPanel');
 
 // Top toolbar: Add Question / Section
-addQuestionBtn.onclick = () => {
+if (addQuestionBtn) addQuestionBtn.onclick = () => {
   addQuestionOfSelectedType();
 };
 
@@ -60,7 +60,7 @@ if (openPaperInput) {
 }
 
 // Print
-printBtn.onclick = () => {
+if (printBtn) printBtn.onclick = () => {
   updatePrintExamDetails();
   updateSnapshotMeta();
   window.print();
