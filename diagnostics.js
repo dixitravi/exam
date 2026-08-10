@@ -91,6 +91,11 @@ function setupCapture() {
   isSetup = true;
 
   window.addEventListener('error', (event) => {
+    if (event.target && (event.target.tagName === 'SCRIPT' || event.target.tagName === 'LINK' || event.target.tagName === 'IMG')) {
+      const src = event.target.src || event.target.href || '(unknown)';
+      addLog('error', 'Resource failed to load: ' + src + ' (' + event.target.tagName + ')', src, '', '', '');
+      return;
+    }
     let stack = '';
     if (event.error && event.error.stack) stack = event.error.stack;
     addLog('error', event.message, event.filename, event.lineno, event.colno, stack);
@@ -284,3 +289,5 @@ function initDiagnostics() {
     createUI();
   }
 }
+
+if (isDebugMode()) setupCapture();
