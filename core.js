@@ -70,6 +70,23 @@ const versionInfo = document.getElementById('versionInfo');
 const VERSION_CODE_KEY = 'qp-version-code';
 const VERSION_LABEL_KEY = 'qp-version-label';
 
+// Safe localStorage wrappers
+function safeLocalStorageGet(key) {
+  try {
+    return safeLocalStorageGet(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeLocalStorageSet(key, value) {
+  try {
+    safeLocalStorageSet(key, value);
+  } catch {
+    // ignore storage errors
+  }
+}
+
 // Simple debounce helper
 function debounce(fn, delay) {
   let timeout;
@@ -81,7 +98,7 @@ function debounce(fn, delay) {
 
 // Load extra schools from localStorage
 function loadSchoolOptionsFromStorage() {
-  const stored = localStorage.getItem(SCHOOL_KEY);
+  const stored = safeLocalStorageGet(SCHOOL_KEY);
   if (!stored) return;
   try {
     const names = JSON.parse(stored);
@@ -110,7 +127,7 @@ function saveSchoolOptionsToStorage() {
     const name = select.options[i].value;
     if (!defaultSchools.includes(name)) names.push(name);
   }
-  localStorage.setItem(SCHOOL_KEY, JSON.stringify(names));
+  safeLocalStorageSet(SCHOOL_KEY, JSON.stringify(names));
 }
 
 // Confirm modal
@@ -165,7 +182,7 @@ document.getElementById('schoolSave').onclick = () => {
     saveSchoolOptionsToStorage();
   }
   select.value = name;
-  localStorage.setItem(SCHOOL_SELECTED_KEY, name);
+  safeLocalStorageSet(SCHOOL_SELECTED_KEY, name);
   schoolModal.style.display = 'none';
   updateSnapshotMeta();
   updateSchoolDeleteVisibility();
@@ -194,7 +211,7 @@ deleteSchoolBtn.onclick = async () => {
   }
   saveSchoolOptionsToStorage();
   select.value = 'Ved Home Classes';
-  localStorage.setItem(SCHOOL_SELECTED_KEY, select.value);
+  safeLocalStorageSet(SCHOOL_SELECTED_KEY, select.value);
   updateSnapshotMeta();
   updateSchoolDeleteVisibility();
 };
@@ -210,10 +227,10 @@ function applyTheme(theme) {
     themeIcon.textContent = '🌞';
     themeLabel.textContent = 'Light mode';
   }
-  localStorage.setItem('qp-theme', theme);
+  safeLocalStorageSet('qp-theme', theme);
 }
 
-const savedTheme = localStorage.getItem('qp-theme') || 'light';
+const savedTheme = safeLocalStorageGet('qp-theme') || 'light';
 applyTheme(savedTheme);
 
 themeToggleBtn.addEventListener('click', () => {
@@ -352,7 +369,7 @@ function saveDraft() {
       ),
       timestamp: Date.now()
     };
-    localStorage.setItem('qp-draft-v1', JSON.stringify(draft));
+    safeLocalStorageSet('qp-draft-v1', JSON.stringify(draft));
   } catch (e) {
     console.warn('Auto-save failed:', e);
   }
@@ -360,7 +377,7 @@ function saveDraft() {
 
 function loadDraft() {
   try {
-    const draft = localStorage.getItem('qp-draft-v1');
+    const draft = safeLocalStorageGet('qp-draft-v1');
     if (!draft) return false;
 
     const data = JSON.parse(draft);
@@ -460,7 +477,7 @@ Object.values(metaFields).filter(input => input && input.addEventListener).forEa
 });
 
 metaFields.schoolName.addEventListener('change', () => {
-  localStorage.setItem(SCHOOL_SELECTED_KEY, metaFields.schoolName.value);
+  safeLocalStorageSet(SCHOOL_SELECTED_KEY, metaFields.schoolName.value);
   updateSnapshotMeta();
   updateSchoolDeleteVisibility();
   debouncedSave();
@@ -508,7 +525,7 @@ function setTodayDateAndDefaults() {
   metaFields.maxMarks.value = 100;
   metaFields.duration.value = 90;
 
-  const storedSelected = localStorage.getItem(SCHOOL_SELECTED_KEY);
+  const storedSelected = safeLocalStorageGet(SCHOOL_SELECTED_KEY);
   if (storedSelected) {
     metaFields.schoolName.value = storedSelected;
   } else {
@@ -541,14 +558,14 @@ function formatVersionString(versionCode) {
 function initVersion() {
   if (!versionInfo) return;
 
-  let storedCode  = Number(localStorage.getItem(VERSION_CODE_KEY)) || 1001;
-  let storedLabel = localStorage.getItem(VERSION_LABEL_KEY);
+  let storedCode  = Number(safeLocalStorageGet(VERSION_CODE_KEY)) || 1001;
+  let storedLabel = safeLocalStorageGet(VERSION_LABEL_KEY);
 
   // First time: generate once
   if (!storedLabel) {
     storedLabel = formatVersionString(storedCode);
-    localStorage.setItem(VERSION_CODE_KEY, String(storedCode));
-    localStorage.setItem(VERSION_LABEL_KEY, storedLabel);
+    safeLocalStorageSet(VERSION_CODE_KEY, String(storedCode));
+    safeLocalStorageSet(VERSION_LABEL_KEY, storedLabel);
   }
 
   versionInfo.textContent = storedLabel;
@@ -556,13 +573,13 @@ function initVersion() {
 
 if (updateVersionBtn && versionInfo) {
   updateVersionBtn.addEventListener('click', () => {
-    let currentCode = Number(localStorage.getItem(VERSION_CODE_KEY)) || 1001;
+    let currentCode = Number(safeLocalStorageGet(VERSION_CODE_KEY)) || 1001;
     currentCode += 1;
 
     const newLabel = formatVersionString(currentCode);
 
-    localStorage.setItem(VERSION_CODE_KEY, String(currentCode));
-    localStorage.setItem(VERSION_LABEL_KEY, newLabel);
+    safeLocalStorageSet(VERSION_CODE_KEY, String(currentCode));
+    safeLocalStorageSet(VERSION_LABEL_KEY, newLabel);
 
     versionInfo.textContent = newLabel;
   });
@@ -623,7 +640,7 @@ function applyPrintMargins(values) {
 }
 
 function loadPrintSettings() {
-  const stored = localStorage.getItem(PRINT_SETTINGS_KEY);
+  const stored = safeLocalStorageGet(PRINT_SETTINGS_KEY);
   if (!stored) return { ...DEFAULT_PRINT_MARGINS };
   try {
     const parsed = JSON.parse(stored);
@@ -668,7 +685,7 @@ function initPrintSettings() {
       if (bad.length) showStatus('Margins must be 0–50 mm', 'error');
       else showStatus('Print margins applied', 'success');
 
-      localStorage.setItem(PRINT_SETTINGS_KEY, JSON.stringify(values));
+      safeLocalStorageSet(PRINT_SETTINGS_KEY, JSON.stringify(values));
       applyPrintMargins(values);
       setPrintInputs(values);
     });
@@ -678,7 +695,7 @@ function initPrintSettings() {
     printSettingsReset.addEventListener('click', () => {
       setPrintInputs(DEFAULT_PRINT_MARGINS);
       applyPrintMargins(DEFAULT_PRINT_MARGINS);
-      localStorage.setItem(PRINT_SETTINGS_KEY, JSON.stringify(DEFAULT_PRINT_MARGINS));
+      safeLocalStorageSet(PRINT_SETTINGS_KEY, JSON.stringify(DEFAULT_PRINT_MARGINS));
       showStatus('Margins reset to default', 'success');
     });
   }
@@ -686,10 +703,10 @@ function initPrintSettings() {
 
 // Public init for this core file
 function initCore() {
-  loadSchoolOptionsFromStorage();
-  setTodayDateAndDefaults();
-  updateMetaVisibilityForViewport();
-  updateMarksInfoFloating();
-  initVersion();
-  initPrintSettings();
+  try { loadSchoolOptionsFromStorage(); } catch (e) { console.warn('loadSchoolOptionsFromStorage failed', e); }
+  try { setTodayDateAndDefaults(); } catch (e) { console.warn('setTodayDateAndDefaults failed', e); }
+  try { updateMetaVisibilityForViewport(); } catch (e) { console.warn('updateMetaVisibilityForViewport failed', e); }
+  try { updateMarksInfoFloating(); } catch (e) { console.warn('updateMarksInfoFloating failed', e); }
+  try { initVersion(); } catch (e) { console.warn('initVersion failed', e); }
+  try { initPrintSettings(); } catch (e) { console.warn('initPrintSettings failed', e); }
 }
