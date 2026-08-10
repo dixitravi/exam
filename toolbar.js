@@ -58,9 +58,7 @@ function doPrint() {
 }
 
 // Print dropdown
-const printMenuBtn = document.getElementById('printMenuBtn');
-const printDropdown = document.getElementById('printDropdown');
-const printDropdownMenu = document.getElementById('printDropdownMenu');
+
 if (printMenuBtn) {
   printMenuBtn.onclick = (e) => { e.stopPropagation(); printDropdownMenu.style.display = printDropdownMenu.style.display === 'none' ? 'block' : 'none'; };
 }
