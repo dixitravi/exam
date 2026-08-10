@@ -73,7 +73,7 @@ const VERSION_LABEL_KEY = 'qp-version-label';
 // Safe localStorage wrappers
 function safeLocalStorageGet(key) {
   try {
-    return safeLocalStorageGet(key);
+    return localStorage.getItem(key);
   } catch {
     return null;
   }
@@ -81,7 +81,7 @@ function safeLocalStorageGet(key) {
 
 function safeLocalStorageSet(key, value) {
   try {
-    safeLocalStorageSet(key, value);
+    localStorage.setItem(key, value);
   } catch {
     // ignore storage errors
   }
