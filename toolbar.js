@@ -13,6 +13,7 @@ const newPaperBtnBottom = document.getElementById('newPaperBtnBottom');
 const openPaperBtnBottom = document.getElementById('openPaperBtnBottom');
 const savePaperBtnBottom = document.getElementById('savePaperBtnBottom');
 const printBtnBottom = document.getElementById('printBtnBottom');
+const printSettingsPanel = document.getElementById('printSettingsPanel');
 
 // Top toolbar: Add Question / Section
 addQuestionBtn.onclick = () => {
@@ -64,6 +65,14 @@ printBtn.onclick = () => {
   updateSnapshotMeta();
   window.print();
 };
+
+// Print settings panel toggle
+if (printSettingsBtn) {
+  printSettingsBtn.onclick = () => {
+    if (!printSettingsPanel) return;
+    printSettingsPanel.style.display = printSettingsPanel.style.display === 'none' ? 'block' : 'none';
+  };
+}
 
 // Bottom toolbar
 const toolbarBottom = document.getElementById('toolbarBottom');

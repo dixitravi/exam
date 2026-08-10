@@ -1347,36 +1347,45 @@ function renderQuestions() {
     const printPreview = document.createElement('div');
     printPreview.className = 'print-preview';
 
-    const printText = document.createElement('div');
+    const printQuestionLine = document.createElement('div');
+    printQuestionLine.className = 'print-question-line';
+
+    const qNum = document.createElement('strong');
+    qNum.className = 'print-q-number';
+    qNum.textContent = 'Q' + displayIndex + '. ';
+
+    const printText = document.createElement('span');
     printText.className = 'print-question-text';
     printText.innerHTML = q.text || '';
-    printPreview.appendChild(printText);
+
+    const marksSpan = document.createElement('span');
+    marksSpan.className = 'print-marks';
+    const m = Number(q.marks) || 0;
+    marksSpan.textContent = '(' + m + ' Mark' + (m === 1 ? '' : 's') + ')';
+
+    printQuestionLine.appendChild(qNum);
+    printQuestionLine.appendChild(printText);
+    printQuestionLine.appendChild(marksSpan);
+    printPreview.appendChild(printQuestionLine);
 
     if (qType === 'multiple' || qType === 'multiple_correct' || qType === 'truefalse') {
       const options = qType === 'truefalse' ? [{ text: 'True' }, { text: 'False' }] : (q.options || []);
-      const isCheckbox = qType === 'multiple_correct';
       const printOptions = document.createElement('div');
       printOptions.className = 'print-options';
       options.forEach((opt, oIdx) => {
         const row = document.createElement('div');
         row.className = 'print-option-row';
 
-        const input = document.createElement('input');
-        input.type = isCheckbox ? 'checkbox' : 'radio';
-        input.disabled = true;
         const labelSpan = document.createElement('span');
         labelSpan.className = 'print-option-label';
-        labelSpan.textContent = ((qType === 'multiple' || qType === 'multiple_correct') ? String.fromCharCode(65 + oIdx) + '.' : (opt.text || '')) + ' ';
-        const textSpan = document.createElement('span');
-        textSpan.textContent = qType === 'truefalse' ? '' : (opt.text || '');
+        labelSpan.textContent = String.fromCharCode(65 + oIdx) + '.';
 
-        row.appendChild(input);
-        if (qType === 'multiple' || qType === 'multiple_correct') {
-          row.appendChild(labelSpan);
-          row.appendChild(textSpan);
-        } else {
-          row.appendChild(labelSpan);
-        }
+        const textSpan = document.createElement('span');
+        textSpan.className = 'print-option-text';
+        textSpan.textContent = ' ' + (opt.text || '');
+
+        row.appendChild(labelSpan);
+        row.appendChild(textSpan);
         printOptions.appendChild(row);
       });
       printPreview.appendChild(printOptions);

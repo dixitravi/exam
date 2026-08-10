@@ -13,6 +13,10 @@
   --input-border: #cbd5f5;
   --toolbar-bg: #ffffff;
   --hero-overlay: rgba(15,23,42,0.65);
+  --print-margin-top: 20mm;
+  --print-margin-bottom: 20mm;
+  --print-margin-left: 15mm;
+  --print-margin-right: 15mm;
 }
 
 body.theme-dark {
@@ -2231,5 +2235,388 @@ body.theme-dark .remove-blank img {
   .question-card {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+}
+
+/* Print settings panel (screen only) */
+.print-settings-panel {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 10px 0 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.print-settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.print-settings-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-color);
+  min-width: 80px;
+  flex: 1;
+}
+
+.print-settings-row input[type="number"] {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-color);
+  font-size: 13px;
+  width: 80px;
+}
+
+.print-settings-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.print-settings-actions button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+#printSettingsReset {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Consolidated professional print styles */
+@media print {
+  @page {
+    margin: var(--print-margin-top) var(--print-margin-right) var(--print-margin-bottom) var(--print-margin-left);
+  }
+
+  /* Force light mode */
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body.theme-dark {
+    --bg-color: #ffffff;
+    --header-bg: #ffffff;
+    --header-text: #000000;
+    --card-bg: #ffffff;
+    --text-color: #000000;
+    --border-color: #000000;
+    --accent-color: #000000;
+    --accent-soft: #ffffff;
+    --danger-color: #000000;
+    --shadow-soft: none;
+    --input-bg: #ffffff;
+    --input-border: #000000;
+    --toolbar-bg: #ffffff;
+  }
+
+  .question-card, .question-card:nth-child(odd), .question-card:nth-child(even),
+  .section-card, .section-card:nth-child(odd), .section-card:nth-child(even),
+  .print-preview, .print-question-line, .print-question-text, .print-options,
+  .print-option-row, .print-option-label, .print-option-text, .print-match,
+  .print-match-column, .print-match-row, .print-paragraph-passage,
+  .print-sub-questions, .print-sub-question, .print-fillblank,
+  .print-blank-line, .print-numeric-blank, .print-long-box,
+  .print-exam-header, .print-exam-row, .print-exam-school, .print-exam-subject,
+  .print-exam-title, .print-exam-name, .print-exam-meta-right, .print-marks,
+  .print-q-number, .print-page-number, .section-print, .section-print-name,
+  .section-print-meta {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
+  }
+
+  /* Hide editor / non-print chrome */
+  .hero-wrapper, .hero-overlay, .snapshot-card, .paper-meta-card,
+  .paper-meta, .paper-meta-header, .paper-meta input, .paper-meta select,
+  .paper-meta label, .meta-toggle, #addSchoolLink, #deleteSchoolBtn,
+  .toolbar, .toolbar-bottom, footer, .question-actions, .editor-toolbar,
+  .expand-icon, .btn-add-option, .add-blank-btn, .add-subquestion,
+  .section-actions, .section-action-btn, .reorder-btn, .delete-icon,
+  .collapse-btn, #burgerBtn, #addQuestionBtn, #addSectionBtn,
+  #printSettingsBtn, #printSettingsPanel, .print-settings-panel,
+  .status-message, .marks-info, .current-file-info, #themeToggle,
+  .theme-toggle, .dev-diagnostics, .dev-button, #diagnosticsPanel,
+  #devToggleBtn, .diagnostics-float, #updateVersionBtn, .question-type-badge,
+  .question-header, .question-header-right, .marks-input, .print-only-school,
+  .print-only-exam, .print-only-exam-row, #printSchoolHeader,
+  .question-modal-overlay, .type-selector-overlay, .img-size-tooltip,
+  .school-modal, #schoolModal, #confirmModal, .question-editor,
+  .question-answer, .truefalse-options, .options-title, .options,
+  .options-grid, .option-row, .fillblank-rows, .fillblank-row,
+  .numeric-row, .match-rows, .match-row, .paragraph-editor,
+  .sub-question-card, .sub-question-header, .sub-question-type-select,
+  .sub-question-text, .section-header, .section-controls,
+  .section-collapse-toggle, .section-add-question, .drag-grip {
+    display: none !important;
+  }
+
+  /* Ensure collapsed sections still print */
+  .section-card.collapsed .section-body {
+    display: block !important;
+  }
+
+  /* Layout for print */
+  body {
+    margin: 0;
+    padding: 0;
+    font-size: 12pt;
+    line-height: 1.4;
+  }
+
+  .page-content, .main-wrapper {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Exam header */
+  #printExamDetails {
+    display: block;
+    margin-bottom: 18px;
+  }
+
+  .print-exam-header {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .print-exam-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .print-exam-row-1 {
+    font-size: 10pt;
+    padding-bottom: 4px;
+  }
+
+  .print-exam-school {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .print-exam-subject {
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .print-exam-divider {
+    border-bottom: 1px solid #000000;
+    margin-bottom: 10px;
+  }
+
+  .print-exam-title {
+    font-size: 16pt;
+    font-weight: 700;
+    text-align: center;
+    margin: 10px 0 14px;
+  }
+
+  .print-exam-row-3 {
+    font-size: 10pt;
+    margin-top: 4px;
+  }
+
+  .print-exam-name {
+    font-weight: 500;
+  }
+
+  .print-exam-meta-right {
+    font-weight: 500;
+  }
+
+  /* Question styling */
+  .question-card {
+    border: none;
+    border-bottom: 1px solid #cccccc;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 8px 0 10px;
+    margin: 0 0 10px;
+  }
+
+  .print-preview {
+    display: block;
+  }
+
+  .print-question-line {
+    margin-bottom: 6px;
+    font-size: 12pt;
+  }
+
+  .print-q-number {
+    font-weight: 700;
+    margin-right: 4px;
+  }
+
+  .print-question-text {
+    display: inline;
+  }
+
+  .print-marks {
+    display: inline;
+    font-weight: 500;
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+
+  /* Options */
+  .print-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px 24px;
+    margin: 6px 0 0 22px;
+    font-size: 11pt;
+  }
+
+  .print-option-row {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+  }
+
+  .print-option-label {
+    font-weight: 600;
+    min-width: 22px;
+  }
+
+  /* Short / long / numeric answers */
+  .print-numeric-blank {
+    display: inline-block;
+    width: 160px;
+    border-bottom: 1px solid #000000;
+    margin: 6px 0 0 22px;
+    height: 18px;
+  }
+
+  .print-long-box {
+    width: calc(100% - 22px);
+    min-height: 96px;
+    border: 1px solid #000000;
+    margin: 6px 0 0 22px;
+    background: repeating-linear-gradient(
+      transparent,
+      transparent 23px,
+      #dddddd 23px,
+      #dddddd 24px
+    );
+  }
+
+  /* Fill in the blanks */
+  .print-fillblank {
+    display: inline;
+    margin: 6px 0 0 22px;
+    font-size: 11pt;
+  }
+
+  .print-blank-line {
+    display: inline-block;
+    margin: 0 8px 0 0;
+    min-width: 80px;
+    letter-spacing: 2px;
+  }
+
+  /* Match the following */
+  .print-match {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 24px;
+    margin: 6px 0 0 22px;
+    font-size: 11pt;
+  }
+
+  .print-match-column {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .print-match-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Paragraph */
+  .print-paragraph-passage {
+    border: 1px solid #000000;
+    padding: 8px;
+    margin: 6px 0 10px 22px;
+    white-space: pre-wrap;
+    font-size: 11pt;
+  }
+
+  .print-sub-questions {
+    margin-left: 22px;
+    font-size: 11pt;
+  }
+
+  .print-sub-question {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .print-sub-question-number {
+    font-weight: 600;
+    min-width: 24px;
+  }
+
+  /* Sections */
+  .section-card {
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin: 0 0 16px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .section-print {
+    display: block !important;
+    margin-bottom: 8px;
+  }
+
+  .section-print-name {
+    font-size: 13pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .section-print-meta {
+    font-size: 10pt;
+    font-style: italic;
+  }
+
+  /* Page number */
+  .print-page-number {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10pt;
+    padding: 6px 0;
   }
 }

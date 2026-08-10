@@ -183,12 +183,27 @@
       </button>
       <button class="btn-section" id="addSectionBtn" title="Add section">Add Section</button>
       <button type="button" class="btn-print" id="menuPrint" title="Print (Ctrl+P)">🖨 Print</button>
+      <button type="button" class="btn-print" id="printSettingsBtn" title="Print margin settings">⚙ Print Settings</button>
       <div class="burger-menu" id="burgerMenu"></div>
 
       <span id="statusMessage" class="status-message"></span>
       <span id="currentFileInfo" class="current-file-info"></span>
       <div class="marks-info" id="marksInfo">Total: 0</div>
     </div>
+
+    <div id="printSettingsPanel" class="print-settings-panel" style="display:none;">
+      <div class="print-settings-row">
+        <label>Top (mm) <input type="number" id="printMarginTop" min="0" max="50" value="20"></label>
+        <label>Bottom (mm) <input type="number" id="printMarginBottom" min="0" max="50" value="20"></label>
+        <label>Left (mm) <input type="number" id="printMarginLeft" min="0" max="50" value="15"></label>
+        <label>Right (mm) <input type="number" id="printMarginRight" min="0" max="50" value="15"></label>
+      </div>
+      <div class="print-settings-actions">
+        <button type="button" id="printSettingsReset">Reset to Default</button>
+        <button type="button" id="printSettingsApply" class="btn-print">Apply</button>
+      </div>
+    </div>
+
 	<div class="paper-title-wrap">
 	  <label for="paperTitle">Paper Title</label>
 	  <input id="paperTitle" type="text" placeholder="Mid Term Examination / Final Examination / Unit Test / Monthly Assessment">
