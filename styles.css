@@ -1618,16 +1618,17 @@ img.resizing {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 260px;
+  width: max-content;
+  min-width: 180px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 0;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
   z-index: 20;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
 .theme-dark .print-dropdown-menu {
@@ -1636,26 +1637,28 @@ img.resizing {
 }
 
 .print-dropdown-item {
-  padding: 16px 20px;
+  padding: 14px 18px;
   border: none;
   background: #ffffff;
-  color: #1f2937;
-  font-size: 18px;
+  color: #111827;
+  font-size: 17px;
   font-weight: 500;
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   width: 100%;
 }
 
 .print-dropdown-item span,
 .print-dropdown-item .icon {
-  font-size: 28px;
+  font-size: 26px;
   line-height: 1;
-  width: 32px;
+  width: 30px;
   text-align: center;
+  color: #111827;
 }
 
 .print-dropdown-item:hover,
