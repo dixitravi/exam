@@ -1610,8 +1610,151 @@ img.resizing {
   height: 34px;
 }
 
+.print-caret { font-size: 10px; margin-left: 4px; }
+
+.print-dropdown { position: relative; display: inline-block; }
+
+.print-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 170px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  z-index: 20;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.print-dropdown-item {
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.print-dropdown-item:hover,
+.print-dropdown-item:focus {
+  background: var(--accent-soft);
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.print-settings-modal {
+  background: var(--card-bg);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.35);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-color);
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.modal-body label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.modal-body input[type="number"] {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-color);
+  font-size: 13px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.modal-footer button {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+#printSettingsReset {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+#printSettingsApply {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+#printSettingsCancel {
+  background: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--input-border);
+}
+
+/* Hide legacy inline panel */
+#printSettingsPanel, .print-settings-panel { display: none !important; }
+
 @media (max-width: 768px) {
   .btn-print { display: none; }
+  .print-dropdown { display: none; }
   #addQuestionBtn { display: none; }
   #burgerMenu { display: none; }
   #burgerBtn:focus + #burgerMenu,
@@ -2350,6 +2493,7 @@ body.theme-dark .remove-blank img {
   .section-actions, .section-action-btn, .reorder-btn, .delete-icon,
   .collapse-btn, #burgerBtn, #addQuestionBtn, #addSectionBtn,
   #printSettingsBtn, #printSettingsPanel, .print-settings-panel,
+  #printSettingsModal, .modal-overlay, .print-dropdown,
   .status-message, .marks-info, .current-file-info, #themeToggle,
   .theme-toggle, .dev-diagnostics, .dev-button, #diagnosticsPanel,
   #devToggleBtn, .diagnostics-float, #updateVersionBtn, .question-type-badge,

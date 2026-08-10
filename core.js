@@ -10,7 +10,6 @@ const addQuestionBtn = document.getElementById('addQuestionBtn');
 const exportBtn = document.getElementById('menuExport');
 const importTrigger = document.getElementById('menuImport');
 const importInput = document.getElementById('importInput');
-const printBtn = document.getElementById('menuPrint');
 const marksInfo = document.getElementById('marksInfo');
 const maxMarksInput = document.getElementById('maxMarks');
 
@@ -26,8 +25,12 @@ const metaFields = {
 };
 
 // Print settings
-const printSettingsBtn = document.getElementById('printSettingsBtn');
-const printSettingsPanel = document.getElementById('printSettingsPanel');
+const printSettingsModal = document.getElementById('printSettingsModal');
+const printMenuBtn = document.getElementById('printMenuBtn');
+const printDropdown = document.getElementById('printDropdown');
+const printDropdownMenu = document.getElementById('printDropdownMenu');
+const printSettingsClose = document.getElementById('printSettingsClose');
+const printSettingsCancel = document.getElementById('printSettingsCancel');
 const printMarginTop = document.getElementById('printMarginTop');
 const printMarginBottom = document.getElementById('printMarginBottom');
 const printMarginLeft = document.getElementById('printMarginLeft');
@@ -662,6 +665,16 @@ function setPrintInputs(values) {
   if (printMarginRight) printMarginRight.value = values.right;
 }
 
+function showPrintSettingsModal() {
+  const values = loadPrintSettings();
+  setPrintInputs(values);
+  if (printSettingsModal) printSettingsModal.style.display = 'flex';
+}
+
+function closePrintSettingsModal() {
+  if (printSettingsModal) printSettingsModal.style.display = 'none';
+}
+
 function initPrintSettings() {
   const values = loadPrintSettings();
   applyPrintMargins(values);
@@ -683,7 +696,10 @@ function initPrintSettings() {
         }
       });
       if (bad.length) showStatus('Margins must be 0–50 mm', 'error');
-      else showStatus('Print margins applied', 'success');
+      else {
+        showStatus('Print margins applied', 'success');
+        closePrintSettingsModal();
+      }
 
       safeLocalStorageSet(PRINT_SETTINGS_KEY, JSON.stringify(values));
       applyPrintMargins(values);
@@ -699,6 +715,26 @@ function initPrintSettings() {
       showStatus('Margins reset to default', 'success');
     });
   }
+
+  if (printSettingsClose) {
+    printSettingsClose.addEventListener('click', closePrintSettingsModal);
+  }
+
+  if (printSettingsCancel) {
+    printSettingsCancel.addEventListener('click', closePrintSettingsModal);
+  }
+
+  if (printSettingsModal) {
+    printSettingsModal.addEventListener('click', (e) => {
+      if (e.target === printSettingsModal) closePrintSettingsModal();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && printSettingsModal && printSettingsModal.style.display !== 'none') {
+      closePrintSettingsModal();
+    }
+  });
 }
 
 // Public init for this core file

@@ -185,8 +185,15 @@
         Add Question
       </button>
       <button class="btn-section" id="addSectionBtn" title="Add section">Add Section</button>
-      <button type="button" class="btn-print" id="menuPrint" title="Print (Ctrl+P)">🖨 Print</button>
-      <button type="button" class="btn-print" id="printSettingsBtn" title="Print margin settings">⚙ Print Settings</button>
+      <div class="print-dropdown" id="printDropdown">
+        <button type="button" class="btn-print" id="printMenuBtn" title="Print options">
+          <span>🖨</span> Print <span class="print-caret">▼</span>
+        </button>
+        <div class="print-dropdown-menu" id="printDropdownMenu" style="display:none;">
+          <button type="button" class="print-dropdown-item" data-action="print">🖨 Print</button>
+          <button type="button" class="print-dropdown-item" data-action="settings">⚙ Print Settings</button>
+        </div>
+      </div>
       <div class="burger-menu" id="burgerMenu"></div>
 
       <span id="statusMessage" class="status-message"></span>
@@ -194,16 +201,23 @@
       <div class="marks-info" id="marksInfo">Total: 0</div>
     </div>
 
-    <div id="printSettingsPanel" class="print-settings-panel" style="display:none;">
-      <div class="print-settings-row">
-        <label>Top (mm) <input type="number" id="printMarginTop" min="0" max="50" value="20"></label>
-        <label>Bottom (mm) <input type="number" id="printMarginBottom" min="0" max="50" value="20"></label>
-        <label>Left (mm) <input type="number" id="printMarginLeft" min="0" max="50" value="15"></label>
-        <label>Right (mm) <input type="number" id="printMarginRight" min="0" max="50" value="15"></label>
-      </div>
-      <div class="print-settings-actions">
-        <button type="button" id="printSettingsReset">Reset to Default</button>
-        <button type="button" id="printSettingsApply" class="btn-print">Apply</button>
+    <div id="printSettingsModal" class="modal-overlay" style="display:none;">
+      <div class="modal print-settings-modal">
+        <div class="modal-header">
+          <h3>Print Settings</h3>
+          <button class="modal-close" id="printSettingsClose" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <label>Top Margin (mm)<input type="number" id="printMarginTop" min="0" max="50" value="20"></label>
+          <label>Bottom Margin (mm)<input type="number" id="printMarginBottom" min="0" max="50" value="20"></label>
+          <label>Left Margin (mm)<input type="number" id="printMarginLeft" min="0" max="50" value="15"></label>
+          <label>Right Margin (mm)<input type="number" id="printMarginRight" min="0" max="50" value="15"></label>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="printSettingsReset">Reset to Default</button>
+          <button type="button" id="printSettingsApply">Apply</button>
+          <button type="button" id="printSettingsCancel">Cancel</button>
+        </div>
       </div>
     </div>
 

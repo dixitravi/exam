@@ -1,7 +1,6 @@
 // ===== TOOLBAR.JS =====
-// Depends on: questions, addQuestionBtn, printBtn,
-// newPaper, openPaper, savePaper,
-// renderQuestions, debouncedSave
+// Depends on: questions, addQuestionBtn, newPaper, openPaper, savePaper,
+// renderQuestions, debouncedSave, updatePrintExamDetails, updateSnapshotMeta
 
 const newPaperBtn = document.getElementById('newPaperBtn');
 const openPaperBtn = document.getElementById('openPaperBtn');
@@ -38,12 +37,6 @@ if (openPaperBtn) openPaperBtn.onclick = async () => {
   }
 };
 if (savePaperBtn) savePaperBtn.onclick = savePaper;
-document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
-    e.preventDefault();
-    if (printBtn && printBtn.click) printBtn.click();
-  }
-});
 
 if (openPaperInput) {
   openPaperInput.onchange = async e => {
@@ -58,20 +51,33 @@ if (openPaperInput) {
   };
 }
 
-// Print
-if (printBtn) printBtn.onclick = () => {
+function doPrint() {
   updatePrintExamDetails();
   updateSnapshotMeta();
   window.print();
-};
-
-// Print settings panel toggle
-if (printSettingsBtn) {
-  printSettingsBtn.onclick = () => {
-    if (!printSettingsPanel) return;
-    printSettingsPanel.style.display = printSettingsPanel.style.display === 'none' ? 'block' : 'none';
-  };
 }
+
+// Print dropdown
+const printMenuBtn = document.getElementById('printMenuBtn');
+const printDropdown = document.getElementById('printDropdown');
+const printDropdownMenu = document.getElementById('printDropdownMenu');
+if (printMenuBtn) {
+  printMenuBtn.onclick = (e) => { e.stopPropagation(); printDropdownMenu.style.display = printDropdownMenu.style.display === 'none' ? 'block' : 'none'; };
+}
+document.addEventListener('click', () => { if (printDropdownMenu) printDropdownMenu.style.display = 'none'; });
+if (printDropdownMenu) {
+  printDropdownMenu.querySelectorAll('[data-action]').forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); printDropdownMenu.style.display = 'none'; const action = btn.dataset.action; if (action === 'print') { doPrint(); } else if (action === 'settings' && typeof showPrintSettingsModal === 'function') showPrintSettingsModal(); };
+  });
+}
+
+// Keyboard shortcut Ctrl+P
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+    e.preventDefault();
+    doPrint();
+  }
+});
 
 // Bottom toolbar
 const toolbarBottom = document.getElementById('toolbarBottom');
@@ -81,7 +87,7 @@ if (addQuestionBtnBottom) addQuestionBtnBottom.onclick = addQuestionBtn.onclick;
 if (newPaperBtnBottom)     newPaperBtnBottom.onclick     = newPaper;
 if (openPaperBtnBottom)    openPaperBtnBottom.onclick    = () => openPaperInput.click();
 if (savePaperBtnBottom)    savePaperBtnBottom.onclick    = savePaper;
-if (printBtnBottom)        printBtnBottom.onclick        = printBtn.onclick;
+if (printBtnBottom)        printBtnBottom.onclick        = doPrint;
 
 // Show/hide bottom toolbar based on question count
 function toggleBottomToolbar() {
