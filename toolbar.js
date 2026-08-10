@@ -13,7 +13,6 @@ const newPaperBtnBottom = document.getElementById('newPaperBtnBottom');
 const openPaperBtnBottom = document.getElementById('openPaperBtnBottom');
 const savePaperBtnBottom = document.getElementById('savePaperBtnBottom');
 const printBtnBottom = document.getElementById('printBtnBottom');
-const printSettingsPanel = document.getElementById('printSettingsPanel');
 
 // Top toolbar: Add Question / Section
 if (addQuestionBtn) addQuestionBtn.onclick = () => {
