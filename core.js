@@ -25,6 +25,18 @@ const metaFields = {
   maxMarks: maxMarksInput
 };
 
+// Print settings
+const printSettingsBtn = document.getElementById('printSettingsBtn');
+const printSettingsPanel = document.getElementById('printSettingsPanel');
+const printMarginTop = document.getElementById('printMarginTop');
+const printMarginBottom = document.getElementById('printMarginBottom');
+const printMarginLeft = document.getElementById('printMarginLeft');
+const printMarginRight = document.getElementById('printMarginRight');
+const printSettingsApply = document.getElementById('printSettingsApply');
+const printSettingsReset = document.getElementById('printSettingsReset');
+const PRINT_SETTINGS_KEY = 'exam_print_settings';
+const DEFAULT_PRINT_MARGINS = { top: 20, bottom: 20, left: 15, right: 15 };
+
 // Snapshot DOM references
 const snapSchool = document.getElementById('snapSchool');
 const snapSubject = document.getElementById('snapSubject');
@@ -264,52 +276,68 @@ function updateSnapshotMeta() {
 
 function updatePrintExamDetails() {
   if (typeof renderQuestions === 'function') renderQuestions();
+
   const container = document.getElementById('printExamDetails');
   if (!container) return;
   container.innerHTML = '';
-  if (metaFields.paperTitle && metaFields.paperTitle.value) {
-    const title = document.createElement('h2');
-    title.className = 'print-paper-title';
-    title.textContent = metaFields.paperTitle.value;
-    container.appendChild(title);
-  }
 
-  const rows = [
-    { label: 'Subject', value: metaFields.subject.value },
-    { label: 'Class', value: metaFields.className.value },
-    { label: 'Section', value: metaFields.classSection.value },
-    {
-      label: 'Exam Date',
-      value: metaFields.examDate.value
-        ? formatDateDDMMYYYY(metaFields.examDate.value)
-        : ''
-    },
-    {
-      label: 'Duration',
-      value: metaFields.duration.value
-        ? metaFields.duration.value + ' min'
-        : ''
-    },
-    { label: 'Max Marks', value: metaFields.maxMarks.value }
-  ];
+  const school = (metaFields.schoolName && metaFields.schoolName.value) || 'Ved Home Classes';
+  const subject = (metaFields.subject && metaFields.subject.value) || '';
+  const paperTitle = (metaFields.paperTitle && metaFields.paperTitle.value) || '';
+  const duration = (metaFields.duration && metaFields.duration.value) || '';
+  const maxMarks = (metaFields.maxMarks && metaFields.maxMarks.value) || '';
 
-  rows.forEach(r => {
-    if (!r.value) return;
-    const row = document.createElement('div');
-    row.className = 'print-only-exam-row';
+  const header = document.createElement('div');
+  header.className = 'print-exam-header';
 
-    const labelSpan = document.createElement('span');
-    labelSpan.className = 'print-only-exam-label';
-    labelSpan.textContent = r.label + ':';
+  const row1 = document.createElement('div');
+  row1.className = 'print-exam-row print-exam-row-1';
 
-    const valueSpan = document.createElement('span');
-    valueSpan.className = 'print-only-exam-value';
-    valueSpan.textContent = r.value;
+  const schoolEl = document.createElement('div');
+  schoolEl.className = 'print-exam-school';
+  schoolEl.textContent = school;
 
-    row.appendChild(labelSpan);
-    row.appendChild(valueSpan);
-    container.appendChild(row);
-  });
+  const subjectEl = document.createElement('div');
+  subjectEl.className = 'print-exam-subject';
+  subjectEl.textContent = subject;
+
+  row1.appendChild(schoolEl);
+  row1.appendChild(subjectEl);
+
+  const divider = document.createElement('div');
+  divider.className = 'print-exam-divider';
+
+  const title = document.createElement('div');
+  title.className = 'print-exam-title';
+  title.textContent = paperTitle;
+
+  const row3 = document.createElement('div');
+  row3.className = 'print-exam-row print-exam-row-3';
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'print-exam-name';
+  nameEl.textContent = 'Name: ___________________________';
+
+  const metaRight = document.createElement('div');
+  metaRight.className = 'print-exam-meta-right';
+  const durVal = duration ? duration + ' min' : '____';
+  const marksVal = maxMarks || '____';
+  metaRight.textContent = `Duration: ${durVal} | Max Marks: ${marksVal} | Date: _______________`;
+
+  row3.appendChild(nameEl);
+  row3.appendChild(metaRight);
+
+  header.appendChild(row1);
+  header.appendChild(divider);
+  header.appendChild(title);
+  header.appendChild(row3);
+
+  const pageNumber = document.createElement('div');
+  pageNumber.className = 'print-page-number';
+  pageNumber.textContent = 'Page 1';
+
+  container.appendChild(header);
+  container.appendChild(pageNumber);
 }
 
 // Draft save/load
@@ -586,6 +614,76 @@ if (versionInfo && versionTooltip && versionTooltipShadow) {
 
 
 
+function applyPrintMargins(values) {
+  const root = document.documentElement;
+  root.style.setProperty('--print-margin-top', values.top + 'mm');
+  root.style.setProperty('--print-margin-bottom', values.bottom + 'mm');
+  root.style.setProperty('--print-margin-left', values.left + 'mm');
+  root.style.setProperty('--print-margin-right', values.right + 'mm');
+}
+
+function loadPrintSettings() {
+  const stored = localStorage.getItem(PRINT_SETTINGS_KEY);
+  if (!stored) return { ...DEFAULT_PRINT_MARGINS };
+  try {
+    const parsed = JSON.parse(stored);
+    const out = { ...DEFAULT_PRINT_MARGINS };
+    ['top', 'bottom', 'left', 'right'].forEach(k => {
+      const v = Number(parsed[k]);
+      if (!isNaN(v) && v >= 0 && v <= 50) out[k] = v;
+    });
+    return out;
+  } catch {
+    return { ...DEFAULT_PRINT_MARGINS };
+  }
+}
+
+function setPrintInputs(values) {
+  if (printMarginTop) printMarginTop.value = values.top;
+  if (printMarginBottom) printMarginBottom.value = values.bottom;
+  if (printMarginLeft) printMarginLeft.value = values.left;
+  if (printMarginRight) printMarginRight.value = values.right;
+}
+
+function initPrintSettings() {
+  const values = loadPrintSettings();
+  applyPrintMargins(values);
+  setPrintInputs(values);
+
+  if (printSettingsApply) {
+    printSettingsApply.addEventListener('click', () => {
+      const values = {
+        top: Number(printMarginTop && printMarginTop.value),
+        bottom: Number(printMarginBottom && printMarginBottom.value),
+        left: Number(printMarginLeft && printMarginLeft.value),
+        right: Number(printMarginRight && printMarginRight.value)
+      };
+      const bad = [];
+      ['top', 'bottom', 'left', 'right'].forEach(k => {
+        if (isNaN(values[k]) || values[k] < 0 || values[k] > 50) {
+          bad.push(k);
+          values[k] = DEFAULT_PRINT_MARGINS[k];
+        }
+      });
+      if (bad.length) showStatus('Margins must be 0–50 mm', 'error');
+      else showStatus('Print margins applied', 'success');
+
+      localStorage.setItem(PRINT_SETTINGS_KEY, JSON.stringify(values));
+      applyPrintMargins(values);
+      setPrintInputs(values);
+    });
+  }
+
+  if (printSettingsReset) {
+    printSettingsReset.addEventListener('click', () => {
+      setPrintInputs(DEFAULT_PRINT_MARGINS);
+      applyPrintMargins(DEFAULT_PRINT_MARGINS);
+      localStorage.setItem(PRINT_SETTINGS_KEY, JSON.stringify(DEFAULT_PRINT_MARGINS));
+      showStatus('Margins reset to default', 'success');
+    });
+  }
+}
+
 // Public init for this core file
 function initCore() {
   loadSchoolOptionsFromStorage();
@@ -593,4 +691,5 @@ function initCore() {
   updateMetaVisibilityForViewport();
   updateMarksInfoFloating();
   initVersion();
+  initPrintSettings();
 }
