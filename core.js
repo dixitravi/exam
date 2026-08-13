@@ -4,6 +4,8 @@
 let questions = [];
 let sections = [];
 let currentSectionId = null;
+let paperTitle = 'Untitled Paper';
+var lastSaved = null;
 
 const questionsContainer = document.getElementById('questionsContainer');
 const addQuestionBtn = document.getElementById('addQuestionBtn');
@@ -13,16 +15,29 @@ const importInput = document.getElementById('importInput');
 const marksInfo = document.getElementById('marksInfo');
 const maxMarksInput = document.getElementById('maxMarks');
 
+const editorWorkspace = document.getElementById('editorWorkspace');
+const savedPapersView = document.getElementById('savedPapersView');
+let currentView = 'editor';
+
 const metaFields = {
   schoolName: document.getElementById('schoolName'),
   paperTitle: document.getElementById('paperTitle'),
   subject: document.getElementById('subject'),
   className: document.getElementById('className'),
   classSection: document.getElementById('classSection'),
-  examDate: document.getElementById('examDate'),
+  dateOfExam: document.getElementById('dateOfExam'),
   duration: document.getElementById('duration'),
   maxMarks: maxMarksInput
 };
+
+const paperHeaderTitle = document.getElementById('paperHeaderTitle');
+const paperHeaderCard = document.getElementById('paperHeaderCard');
+const statSections = document.getElementById('statSections');
+const statQuestions = document.getElementById('statQuestions');
+const statMarks = document.getElementById('statMarks');
+const statCreated = document.getElementById('statCreated');
+const editPaperTitleBtn = document.getElementById('editPaperTitleBtn');
+const clearMetaBtn = document.getElementById('clearMetaBtn');
 
 // Print settings
 const printSettingsModal = document.getElementById('printSettingsModal');
@@ -52,8 +67,12 @@ const snapTotal = document.getElementById('snapTotal');
 
 // Theme and layout controls
 const themeToggleBtn = document.getElementById('themeToggle');
+const landingThemeToggle = document.getElementById('landingThemeToggle');
 const themeIcon = document.getElementById('themeIcon');
 const themeLabel = document.getElementById('themeLabel');
+
+const landingScreen = document.getElementById('landingScreen');
+const editorScreen = document.getElementById('editorScreen');
 
 const burgerBtn = document.getElementById('burgerBtn');
 const burgerMenu = document.getElementById('burgerMenu');
@@ -149,9 +168,13 @@ document.getElementById('confirmOk').onclick = () => {
   if (confirmResolve) confirmResolve(true);
 };
 
-function showConfirm(message, okText = 'Delete') {
-  confirmMessage.textContent = message;
+function showConfirm(message, okText = 'Delete', cancelText = 'Cancel') {
+  confirmMessage.innerHTML = message;
   if (confirmOk) confirmOk.textContent = okText;
+  if (confirmCancel) {
+    confirmCancel.textContent = cancelText || 'Cancel';
+    confirmCancel.style.display = (cancelText === null || cancelText === false) ? 'none' : 'inline-flex';
+  }
   confirmModal.style.display = 'flex';
   return new Promise(res => { confirmResolve = res; });
 }
@@ -219,16 +242,30 @@ deleteSchoolBtn.onclick = async () => {
   updateSchoolDeleteVisibility();
 };
 
+function showEditor() {
+  if (landingScreen) landingScreen.classList.add('hidden');
+  if (editorScreen) editorScreen.classList.remove('hidden');
+}
+
+async function showLanding() {
+  if (typeof hasUnsavedChanges === 'function' && hasUnsavedChanges()) {
+    const ok = await showConfirm('You have unsaved changes. Leave without saving?', 'Leave');
+    if (!ok) return;
+  }
+  if (landingScreen) landingScreen.classList.remove('hidden');
+  if (editorScreen) editorScreen.classList.add('hidden');
+}
+
 // Theme handling
 function applyTheme(theme) {
   if (theme === 'dark') {
     document.body.classList.add('theme-dark');
-    themeIcon.textContent = '🌙';
-    themeLabel.textContent = 'Dark mode';
+    document.querySelectorAll('.theme-icon').forEach(el => el.textContent = '🌙');
+    document.querySelectorAll('.theme-label').forEach(el => el.textContent = 'Dark mode');
   } else {
     document.body.classList.remove('theme-dark');
-    themeIcon.textContent = '🌞';
-    themeLabel.textContent = 'Light mode';
+    document.querySelectorAll('.theme-icon').forEach(el => el.textContent = '🌞');
+    document.querySelectorAll('.theme-label').forEach(el => el.textContent = 'Light mode');
   }
   safeLocalStorageSet('qp-theme', theme);
 }
@@ -236,10 +273,13 @@ function applyTheme(theme) {
 const savedTheme = safeLocalStorageGet('qp-theme') || 'light';
 applyTheme(savedTheme);
 
-themeToggleBtn.addEventListener('click', () => {
+function onThemeToggle() {
   const isDark = document.body.classList.contains('theme-dark');
   applyTheme(isDark ? 'light' : 'dark');
-});
+}
+
+themeToggleBtn.addEventListener('click', onThemeToggle);
+if (landingThemeToggle) landingThemeToggle.addEventListener('click', onThemeToggle);
 
 // Burger menu
 burgerBtn.addEventListener('click', (e) => {
@@ -280,8 +320,8 @@ function updateSnapshotMeta() {
   const clsText = clsSelect.options[clsSelect.selectedIndex]?.textContent;
   snapClass.textContent = clsText || '-';
   snapSection.textContent = metaFields.classSection.value || '-';
-  snapDate.textContent = metaFields.examDate.value
-    ? formatDateDDMMYYYY(metaFields.examDate.value)
+  snapDate.textContent = metaFields.dateOfExam.value
+    ? formatDateDDMMYYYY(metaFields.dateOfExam.value)
     : '-';
   snapDuration.textContent = metaFields.duration.value
     ? metaFields.duration.value + ' min'
@@ -294,6 +334,42 @@ function updateSnapshotMeta() {
   }
 }
 
+function pluralizeStat(n, singular, plural) {
+  return n + ' ' + (n === 1 ? singular : plural);
+}
+
+function formatTimeAgo(timestamp) {
+  const diff = Date.now() - timestamp;
+  if (diff < 60000) return 'just now';
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return mins + ' min' + (mins === 1 ? '' : 's') + ' ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + ' hour' + (hrs === 1 ? '' : 's') + ' ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return days + ' day' + (days === 1 ? '' : 's') + ' ago';
+  const d = new Date(timestamp);
+  return 'on ' + d.toLocaleDateString();
+}
+
+function updatePaperInfoCard() {
+  if (paperHeaderTitle) paperHeaderTitle.textContent = paperTitle || 'Untitled Paper';
+  if (statSections) statSections.textContent = pluralizeStat(Array.isArray(sections) ? sections.length : 0, 'Section', 'Sections');
+  if (statQuestions) statQuestions.textContent = pluralizeStat(Array.isArray(questions) ? questions.length : 0, 'Question', 'Questions');
+  const total = Array.isArray(questions) ? questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0) : 0;
+  const max = maxMarksInput ? Number(maxMarksInput.value) || 0 : 0;
+  if (statMarks) {
+    statMarks.textContent = pluralizeStat(total, 'Mark', 'Marks');
+    statMarks.classList.toggle('stat-marks-excess', max > 0 && total > max);
+  }
+  if (statCreated) {
+    if (lastSaved) {
+      statCreated.textContent = 'Last saved ' + formatTimeAgo(lastSaved);
+    } else {
+      statCreated.textContent = 'Just created';
+    }
+  }
+}
+
 function updatePrintExamDetails() {
   if (typeof renderQuestions === 'function') renderQuestions();
 
@@ -301,63 +377,140 @@ function updatePrintExamDetails() {
   if (!container) return;
   container.innerHTML = '';
 
-  const school = (metaFields.schoolName && metaFields.schoolName.value) || 'Ved Home Classes';
-  const subject = (metaFields.subject && metaFields.subject.value) || '';
-  const paperTitle = (metaFields.paperTitle && metaFields.paperTitle.value) || '';
-  const duration = (metaFields.duration && metaFields.duration.value) || '';
-  const maxMarks = (metaFields.maxMarks && metaFields.maxMarks.value) || '';
+  const school = (metaFields.schoolName && metaFields.schoolName.value) || 'VED Home Classes';
+  const addressEl = document.querySelector('[data-school-address]');
+  const address = (addressEl && addressEl.dataset.schoolAddress) || 'A1 - 203, Eros Sampoornam';
+  const subject = (metaFields.subject && metaFields.subject.value) || 'Mathematics';
+  const titleForPrint = paperTitle || ('Grade 5 ' + subject + ' — Term 1 Assessment');
+  const durationVal = (metaFields.duration && metaFields.duration.value) || '';
+  const durationText = durationVal ? durationVal + ' Minutes' : '60 Minutes';
+  const totalMarks = questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
+
+  const studentNameInput = (metaFields.studentName && metaFields.studentName) || document.getElementById('studentName');
+  const studentName = (studentNameInput && studentNameInput.value) || '';
+  const dateVal = (metaFields.dateOfExam && metaFields.dateOfExam.value) ? formatDateDDMMYYYY(metaFields.dateOfExam.value) : '';
 
   const header = document.createElement('div');
   header.className = 'print-exam-header';
 
-  const row1 = document.createElement('div');
-  row1.className = 'print-exam-row print-exam-row-1';
+  const logo = document.createElement('div');
+  logo.className = 'print-school-logo';
+  logo.textContent = '🎓';
+  header.appendChild(logo);
 
-  const schoolEl = document.createElement('div');
-  schoolEl.className = 'print-exam-school';
-  schoolEl.textContent = school;
+  const schoolNameEl = document.createElement('div');
+  schoolNameEl.className = 'print-school-name';
+  schoolNameEl.textContent = school;
+  header.appendChild(schoolNameEl);
 
-  const subjectEl = document.createElement('div');
-  subjectEl.className = 'print-exam-subject';
-  subjectEl.textContent = subject;
+  const addressLine = document.createElement('div');
+  addressLine.className = 'print-school-address';
+  addressLine.textContent = address;
+  header.appendChild(addressLine);
 
-  row1.appendChild(schoolEl);
-  row1.appendChild(subjectEl);
+  const hr1 = document.createElement('hr');
+  hr1.className = 'print-hr';
+  header.appendChild(hr1);
 
-  const divider = document.createElement('div');
-  divider.className = 'print-exam-divider';
+  const titleEl = document.createElement('div');
+  titleEl.className = 'print-exam-title';
+  titleEl.textContent = titleForPrint;
+  header.appendChild(titleEl);
 
-  const title = document.createElement('div');
-  title.className = 'print-exam-title';
-  title.textContent = paperTitle;
+  const details = document.createElement('div');
+  details.className = 'print-exam-details';
+  details.innerHTML =
+    '<div>Student Name: ' + (studentName ? studentName : '____________________________________________') + '</div>' +
+    '<div>Total Marks: ' + totalMarks + '</div>' +
+    '<div>Date: ' + (dateVal ? dateVal : '____________________') + '</div>' +
+    '<div>Duration: ' + durationText + '</div>';
+  header.appendChild(details);
 
-  const row3 = document.createElement('div');
-  row3.className = 'print-exam-row print-exam-row-3';
-
-  const nameEl = document.createElement('div');
-  nameEl.className = 'print-exam-name';
-  nameEl.textContent = 'Name: ___________________________';
-
-  const metaRight = document.createElement('div');
-  metaRight.className = 'print-exam-meta-right';
-  const durVal = duration ? duration + ' min' : '____';
-  const marksVal = maxMarks || '____';
-  metaRight.textContent = `Duration: ${durVal} | Max Marks: ${marksVal} | Date: _______________`;
-
-  row3.appendChild(nameEl);
-  row3.appendChild(metaRight);
-
-  header.appendChild(row1);
-  header.appendChild(divider);
-  header.appendChild(title);
-  header.appendChild(row3);
-
-  const pageNumber = document.createElement('div');
-  pageNumber.className = 'print-page-number';
-  pageNumber.textContent = 'Page 1';
+  const hr2 = document.createElement('hr');
+  hr2.className = 'print-hr';
+  header.appendChild(hr2);
 
   container.appendChild(header);
-  container.appendChild(pageNumber);
+
+  const instructionsBox = document.createElement('div');
+  instructionsBox.className = 'print-instructions-box';
+
+  const instructionsTitle = document.createElement('div');
+  instructionsTitle.className = 'print-instructions-title';
+  instructionsTitle.textContent = 'General Instructions:';
+  instructionsBox.appendChild(instructionsTitle);
+
+  const instructionsList = document.createElement('ol');
+  instructionsList.className = 'print-instructions-list';
+
+  const giEl = document.getElementById('generalInstructions');
+  if (giEl && giEl.value && giEl.value.trim()) {
+    giEl.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(line => {
+      const li = document.createElement('li');
+      li.textContent = line.replace(/^\d+[\.)]\s*/, '');
+      instructionsList.appendChild(li);
+    });
+  } else {
+    const fallback = [
+      'Answer all questions.',
+      'Show all working clearly.',
+      'Marks are indicated next to each question.',
+      'Use of calculators is not permitted.'
+    ];
+    fallback.forEach(text => {
+      const li = document.createElement('li');
+      li.textContent = text;
+      instructionsList.appendChild(li);
+    });
+  }
+
+  instructionsBox.appendChild(instructionsList);
+  container.appendChild(instructionsBox);
+  updatePrintPageStrings();
+}
+
+function updatePrintPageStrings() {
+  const subject = ((metaFields.subject && metaFields.subject.value) || '').trim();
+  const titleForPrint = (paperTitle || '').trim();
+  const classSelect = metaFields.class || document.getElementById('className');
+  const sectionSelect = metaFields.section || document.getElementById('classSection');
+  const classOption = classSelect ? classSelect.options[classSelect.selectedIndex] : null;
+  const sectionOption = sectionSelect ? sectionSelect.options[sectionSelect.selectedIndex] : null;
+  const classValue = (classOption ? classOption.text : '').trim();
+  const sectionValue = (sectionOption ? sectionOption.text : '').trim();
+
+  let topLeft = titleForPrint || subject;
+  if (titleForPrint && subject) {
+    topLeft = subject + ' \u2014 ' + titleForPrint;
+  }
+
+  const parts = [];
+  if (subject) parts.push(subject);
+  if (classValue) parts.push('Class ' + classValue);
+  if (sectionValue) parts.push('Section ' + sectionValue);
+  const bottomRight = parts.join(' \u2014 ');
+
+  const escapePageString = str => String(str)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"');
+
+  const topLeftEscaped = escapePageString(topLeft);
+  const bottomRightEscaped = escapePageString(bottomRight);
+
+  let style = document.getElementById('dynamic-page-strings');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'dynamic-page-strings';
+    style.media = 'print';
+    document.head.appendChild(style);
+  }
+  style.textContent = `@page {
+  @top-left { content: "${topLeftEscaped}"; font-size: 9pt; color: #64748b; }
+  @top-right { content: "Page " counter(page); font-size: 9pt; color: #64748b; }
+  @bottom-left { content: "Generated by VED"; font-size: 9pt; color: #64748b; }
+  @bottom-center { content: "\u2014 Page " counter(page) " \u2014"; font-size: 9pt; color: #64748b; }
+  @bottom-right { content: "${bottomRightEscaped}"; font-size: 9pt; color: #64748b; }
+}`;
 }
 
 // Draft save/load
@@ -458,6 +611,9 @@ function loadDraft() {
       questionIds: Array.isArray(s.questionIds) ? [...s.questionIds] : []
     }));
     currentSectionId = data.currentSectionId || (sections[0] && sections[0].id) || null;
+    paperTitle = (metaFields.paperTitle && metaFields.paperTitle.value) || 'Untitled Paper';
+    lastSaved = data.timestamp || Date.now();
+    updatePaperInfoCard();
     return true;
   } catch (e) {
     localStorage.removeItem('qp-draft-v1');
@@ -465,10 +621,15 @@ function loadDraft() {
   }
 }
 
-const debouncedSave = debounce(saveDraft, 1000);
+const debouncedSave = debounce(() => {
+  lastSaved = Date.now();
+  saveDraft();
+  updatePaperInfoCard();
+}, 1000);
 
 // Meta inputs wiring
 Object.values(metaFields).filter(input => input && input.addEventListener).forEach(input => {
+  input.addEventListener('focus', () => recordState('Edit Metadata'));
   input.addEventListener('input', () => {
     updateSnapshotMeta();
     updatePrintExamDetails();
@@ -479,6 +640,13 @@ Object.values(metaFields).filter(input => input && input.addEventListener).forEa
   });
 });
 
+[metaFields.subject, metaFields.className, metaFields.classSection, metaFields.paperTitle].forEach(field => {
+  if (field && field.addEventListener) {
+    field.addEventListener('input', updatePrintPageStrings);
+    field.addEventListener('change', updatePrintPageStrings);
+  }
+});
+
 metaFields.schoolName.addEventListener('change', () => {
   safeLocalStorageSet(SCHOOL_SELECTED_KEY, metaFields.schoolName.value);
   updateSnapshotMeta();
@@ -486,8 +654,55 @@ metaFields.schoolName.addEventListener('change', () => {
   debouncedSave();
 });
 
+// Paper title edit
+if (paperHeaderTitle) {
+  function startEditPaperTitle(e) {
+    if (e) e.stopPropagation();
+    recordState('Edit Paper Title');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = paperHeaderTitle.textContent || 'Untitled Paper';
+    input.className = 'paper-title-input';
+    input.style.cssText = 'font-size:20px;font-weight:700;color:#0f172a;border:1px solid #e2e8f0;border-radius:8px;padding:4px 8px;width:100%;';
+    paperHeaderTitle.replaceWith(input);
+    input.focus();
+    const save = () => {
+      paperTitle = input.value.trim() || 'Untitled Paper';
+      paperHeaderTitle.textContent = paperTitle;
+      input.replaceWith(paperHeaderTitle);
+      if (metaFields.paperTitle) metaFields.paperTitle.value = paperTitle;
+      updatePrintExamDetails();
+      updatePrintPageStrings();
+      updatePaperInfoCard();
+      debouncedSave();
+    };
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
+  }
+  paperHeaderTitle.addEventListener('click', startEditPaperTitle);
+  if (editPaperTitleBtn) editPaperTitleBtn.addEventListener('click', startEditPaperTitle);
+}
+
+// Clear metadata fields
+if (clearMetaBtn) {
+  clearMetaBtn.addEventListener('click', () => {
+    recordState('Clear Metadata');
+    setTodayDateAndDefaults();
+    metaFields.subject.value = '';
+    metaFields.className.value = 'IV';
+    metaFields.classSection.value = 'A';
+    paperTitle = 'Untitled Paper';
+    if (metaFields.paperTitle) metaFields.paperTitle.value = paperTitle;
+    updateSnapshotMeta();
+    updatePrintExamDetails();
+    updatePaperInfoCard();
+    debouncedSave();
+  });
+}
+
 // Meta visibility for mobile
 function updateMetaVisibilityForViewport() {
+  if (!paperMetaBody || !metaToggleBtn) return;
   const isMobile = window.innerWidth <= 768;
   if (!isMobile) {
     paperMetaBody.style.display = 'flex';
@@ -501,12 +716,20 @@ function updateMetaVisibilityForViewport() {
   paperMetaBody.style.display = metaCollapsedMobile ? 'none' : 'flex';
 }
 
-metaToggleBtn.addEventListener('click', () => {
-  const isMobile = window.innerWidth <= 768;
-  if (!isMobile) return;
-  metaCollapsedMobile = !metaCollapsedMobile;
-  updateMetaVisibilityForViewport();
-});
+if (metaToggleBtn) {
+  metaToggleBtn.addEventListener('click', () => {
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) return;
+    metaCollapsedMobile = !metaCollapsedMobile;
+    updateMetaVisibilityForViewport();
+  });
+}
+
+function updatePaperHeaderSticky() {
+  if (!paperHeaderCard) return;
+  const rect = paperHeaderCard.getBoundingClientRect();
+  paperHeaderCard.classList.toggle('is-stuck', rect.top <= 0);
+}
 
 window.addEventListener('resize', () => {
   updateMetaVisibilityForViewport();
@@ -514,6 +737,15 @@ window.addEventListener('resize', () => {
 
 window.addEventListener('scroll', () => {
   updateMarksInfoFloating();
+  updatePaperHeaderSticky();
+});
+
+window.addEventListener('beforeprint', () => {
+  document.body.classList.remove('theme-dark');
+});
+
+window.addEventListener('afterprint', () => {
+  applyTheme(savedTheme);
 });
 
 // Defaults for date/maxMarks/duration + selected school (local date)
@@ -524,7 +756,7 @@ function setTodayDateAndDefaults() {
   const day   = String(today.getDate()).padStart(2, '0');
   const isoLocal = `${year}-${month}-${day}`;
 
-  metaFields.examDate.value = isoLocal;
+  metaFields.dateOfExam.value = isoLocal;
   metaFields.maxMarks.value = 100;
   metaFields.duration.value = 90;
 
@@ -737,6 +969,299 @@ function initPrintSettings() {
   });
 }
 
+// Saved papers dashboard
+const SAVED_EXAMS_KEY = 'savedExams';
+
+function getSavedPapers() {
+  const raw = safeLocalStorageGet(SAVED_EXAMS_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function setSavedPapers(list) {
+  try {
+    safeLocalStorageSet(SAVED_EXAMS_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+}
+
+function recordSavedExam(paper) {
+  if (!paper || typeof paper !== 'object') return;
+  const list = getSavedPapers();
+  const idx = list.findIndex(p => p.id === paper.id);
+  const entry = JSON.parse(JSON.stringify(paper));
+  entry.updatedAt = new Date().toISOString();
+  if (idx >= 0) list[idx] = entry;
+  else list.unshift(entry);
+  setSavedPapers(list);
+}
+
+let savedPapersFilters = { school: 'Ved Home Classes', class: '', section: '', subject: 'all', date: 'all', from: '', to: '', search: '' };
+
+function newId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return Date.now().toString(36);
+}
+
+function showEditorView() {
+  currentView = 'editor';
+  if (editorWorkspace) editorWorkspace.classList.remove('hidden');
+  if (savedPapersView) savedPapersView.classList.add('hidden');
+  if (typeof showEditor === 'function') showEditor();
+}
+
+async function showSavedPapersView() {
+  if (typeof hasUnsavedChanges === 'function' && hasUnsavedChanges()) {
+    const ok = await showConfirm('You have unsaved changes. Leave without saving?', 'Leave');
+    if (!ok) return;
+  }
+  if (typeof showEditor === 'function') showEditor();
+  currentView = 'open';
+  if (editorWorkspace) editorWorkspace.classList.add('hidden');
+  if (savedPapersView) {
+    savedPapersView.classList.remove('hidden');
+    renderSavedPapers();
+  }
+}
+
+function formatSavedDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function getPaperTitle(paper) {
+  if (!paper || typeof paper !== 'object') return 'Untitled Paper';
+  return (paper.meta && paper.meta.paperTitle) || paper.name || 'Untitled Paper';
+}
+
+function filterSavedPapers() {
+  const list = getSavedPapers();
+  const f = savedPapersFilters;
+  const term = (f.search || '').toLowerCase();
+  return list.filter(p => {
+    if (!p || typeof p !== 'object') return false;
+    const meta = p.meta || {};
+    const title = getPaperTitle(p).toLowerCase();
+    const subject = (meta.subject || '').toLowerCase();
+    const cls = (meta.className || '').toLowerCase();
+    if (term && !title.includes(term) && !subject.includes(term) && !cls.includes(term)) return false;
+    if (f.class && meta.className !== f.class) return false;
+    if (f.section && meta.classSection !== f.section) return false;
+    if (f.school && meta.schoolName !== f.school) return false;
+    if (f.subject && f.subject !== 'all' && (meta.subject || '').toLowerCase() !== f.subject.toLowerCase()) return false;
+    if (f.date && f.date !== 'all') {
+      const raw = p.updatedAt || p.createdAt || meta.dateOfExam;
+      const d = raw ? new Date(raw) : null;
+      if (d && !isNaN(d.getTime())) {
+        const now = new Date();
+        const diff = now - d;
+        if (f.date === '7' && diff > 7 * 24 * 60 * 60 * 1000) return false;
+        if (f.date === '30' && diff > 30 * 24 * 60 * 60 * 1000) return false;
+        if (f.date === 'term' && d.getFullYear() !== now.getFullYear()) return false;
+      }
+    }
+    return true;
+  });
+}
+
+function renderSavedPapers() {
+  const grid = document.getElementById('savedPapersGrid');
+  const empty = document.getElementById('savedPapersEmpty');
+  if (!grid) return;
+  const papers = filterSavedPapers();
+  grid.innerHTML = '';
+  if (papers.length === 0) {
+    if (empty) empty.style.display = 'flex';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  papers.forEach(paper => {
+    const meta = paper.meta || {};
+    const date = formatSavedDate(paper.updatedAt || paper.createdAt || meta.dateOfExam) || '—';
+    const title = getPaperTitle(paper);
+    const subject = meta.subject || '—';
+    const cls = meta.className || '—';
+    const qCount = Array.isArray(paper.questions) ? paper.questions.length : 0;
+    const marks = (Array.isArray(paper.questions) ? paper.questions.reduce((s, q) => s + (Number(q.marks) || 0), 0) : 0);
+    const card = document.createElement('div');
+    card.className = 'paper-card';
+    card.innerHTML = `
+      <div class="paper-card-date">${date}</div>
+      <div class="paper-card-title" title="${title.replace(/"/g, '&quot;').replace(/'/g, '&apos;')}">${title}</div>
+      <div class="paper-card-row">Subject: ${subject} • Class ${cls}</div>
+      <div class="paper-card-stats">${qCount} Question${qCount === 1 ? '' : 's'} • ${marks} Marks</div>
+      <div class="paper-card-divider"></div>
+      <div class="paper-card-actions">
+        <button type="button" class="paper-card-btn paper-card-open" data-id="${paper.id || ''}">Open <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
+        <button type="button" class="paper-card-btn paper-card-duplicate" data-id="${paper.id || ''}">Duplicate <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        <button type="button" class="paper-card-btn paper-card-rename" data-id="${paper.id || ''}">Rename</button>
+        <button type="button" class="paper-card-btn paper-card-delete" data-id="${paper.id || ''}">Delete</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  grid.querySelectorAll('.paper-card-open').forEach(btn => {
+    btn.onclick = () => openSavedPaper(btn.dataset.id);
+  });
+  grid.querySelectorAll('.paper-card-duplicate').forEach(btn => {
+    btn.onclick = () => duplicateSavedPaper(btn.dataset.id);
+  });
+  grid.querySelectorAll('.paper-card-rename').forEach(btn => {
+    btn.onclick = () => renameSavedPaper(btn.dataset.id);
+  });
+  grid.querySelectorAll('.paper-card-delete').forEach(btn => {
+    btn.onclick = () => deleteSavedPaper(btn.dataset.id);
+  });
+}
+
+async function openSavedPaper(id) {
+  const list = getSavedPapers();
+  const paper = list.find(p => p.id === id);
+  if (!paper) return;
+  if (typeof hasUnsavedChanges === 'function' && hasUnsavedChanges()) {
+    const ok = await showConfirm('Unsaved Changes. You have unsaved changes. Do you want to continue?', 'Continue');
+    if (!ok) return;
+  }
+  if (typeof loadPaper === 'function') loadPaper(paper);
+  showEditorView();
+}
+
+function duplicateSavedPaper(id) {
+  const list = getSavedPapers();
+  const idx = list.findIndex(p => p.id === id);
+  if (idx < 0) return;
+  const clone = JSON.parse(JSON.stringify(list[idx]));
+  clone.id = newId();
+  clone.name = (clone.name || getPaperTitle(clone)) + ' (Copy)';
+  clone.createdAt = new Date().toISOString();
+  clone.updatedAt = clone.createdAt;
+  list.splice(idx + 1, 0, clone);
+  setSavedPapers(list);
+  renderSavedPapers();
+}
+
+function renameSavedPaper(id) {
+  const list = getSavedPapers();
+  const paper = list.find(p => p.id === id);
+  if (!paper) return;
+  const current = getPaperTitle(paper);
+  const newName = prompt('Rename paper:', current);
+  if (!newName || newName === current) return;
+  paper.name = newName;
+  if (!paper.meta) paper.meta = {};
+  paper.meta.paperTitle = newName;
+  paper.updatedAt = new Date().toISOString();
+  setSavedPapers(list);
+  renderSavedPapers();
+}
+
+async function deleteSavedPaper(id) {
+  const ok = await showConfirm('Delete this saved paper? This cannot be undone.', 'Delete');
+  if (!ok) return;
+  const list = getSavedPapers().filter(p => p.id !== id);
+  setSavedPapers(list);
+  renderSavedPapers();
+}
+
+function initSavedPapersView() {
+  if (!savedPapersView) return;
+  const schoolSelect = document.getElementById('savedPapersSchool');
+  const searchInput = document.getElementById('savedPapersSearch');
+  if (schoolSelect) {
+    schoolSelect.value = savedPapersFilters.school;
+    schoolSelect.onchange = () => { savedPapersFilters.school = schoolSelect.value; renderSavedPapers(); };
+  }
+  if (searchInput) {
+    searchInput.oninput = () => { savedPapersFilters.search = searchInput.value; renderSavedPapers(); };
+  }
+  savedPapersView.querySelectorAll('[data-filter-group]').forEach(group => {
+    const groupName = group.dataset.filterGroup;
+    group.querySelectorAll('[data-filter-value]').forEach(chip => {
+      chip.onclick = () => {
+        group.querySelectorAll('[data-filter-value]').forEach(c => c.classList.remove('chip-active'));
+        chip.classList.add('chip-active');
+        savedPapersFilters[groupName] = chip.dataset.filterValue;
+        renderSavedPapers();
+      };
+    });
+  });
+  const fromInput = document.getElementById('savedPapersFrom');
+  const toInput = document.getElementById('savedPapersTo');
+  if (fromInput) fromInput.onchange = () => { savedPapersFilters.from = fromInput.value; renderSavedPapers(); };
+  if (toInput) toInput.onchange = () => { savedPapersFilters.to = toInput.value; renderSavedPapers(); };
+}
+
+// Landing screen actions
+const landingNewBtn = document.getElementById('landingNewBtn');
+const landingCreateBtn = document.getElementById('landingCreateBtn');
+const landingOpenBtn = document.getElementById('landingOpenBtn');
+const landingOpenCardBtn = document.getElementById('landingOpenCardBtn');
+const landingSaveBtn = document.getElementById('landingSaveBtn');
+const landingRecentBtn = document.getElementById('landingRecentBtn');
+const landingRecentCardBtn = document.getElementById('landingRecentCardBtn');
+const landingPrintBtn = document.getElementById('landingPrintBtn');
+
+function onLandingNew() {
+  if (typeof onNewPaperRequested === 'function') {
+    onNewPaperRequested();
+  } else if (typeof newPaper === 'function') {
+    newPaper();
+  }
+}
+if (landingNewBtn) landingNewBtn.addEventListener('click', onLandingNew);
+if (landingCreateBtn) landingCreateBtn.addEventListener('click', onLandingNew);
+
+function onLandingOpen() {
+  if (typeof openPaperFromPicker === 'function') {
+    openPaperFromPicker();
+  } else if (openPaperInput) {
+    openPaperInput.click();
+  }
+}
+if (landingOpenBtn) landingOpenBtn.addEventListener('click', onLandingOpen);
+if (landingOpenCardBtn) landingOpenCardBtn.addEventListener('click', onLandingOpen);
+
+if (landingSaveBtn) landingSaveBtn.addEventListener('click', () => alert('No paper is open. Create a new paper to save.'));
+
+function onLandingRecent() {
+  if (typeof showSavedPapersView === 'function') showSavedPapersView();
+}
+if (landingRecentBtn) landingRecentBtn.addEventListener('click', onLandingRecent);
+if (landingRecentCardBtn) landingRecentCardBtn.addEventListener('click', onLandingRecent);
+
+if (landingPrintBtn) landingPrintBtn.addEventListener('click', () => alert('There is no paper to print yet.'));
+
+const editorRecentBtn = document.getElementById('editorRecentBtn');
+const editorPrintBtn = document.getElementById('editorPrintBtn');
+const editorPrintDropdownMenu = document.getElementById('editorPrintDropdownMenu');
+if (editorRecentBtn) editorRecentBtn.addEventListener('click', onLandingRecent);
+if (editorPrintBtn) {
+  editorPrintBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (editorPrintDropdownMenu) editorPrintDropdownMenu.style.display = editorPrintDropdownMenu.style.display === 'none' ? 'flex' : 'none';
+  });
+}
+if (editorPrintDropdownMenu) {
+  editorPrintDropdownMenu.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      editorPrintDropdownMenu.style.display = 'none';
+      const action = btn.dataset.action;
+      if (action === 'print' && typeof doPrint === 'function') doPrint();
+      if (action === 'settings' && typeof showPrintSettingsModal === 'function') showPrintSettingsModal();
+    });
+  });
+}
+document.addEventListener('click', () => { if (editorPrintDropdownMenu) editorPrintDropdownMenu.style.display = 'none'; });
+
 // Public init for this core file
 function initCore() {
   try { loadSchoolOptionsFromStorage(); } catch (e) { console.warn('loadSchoolOptionsFromStorage failed', e); }
@@ -745,4 +1270,5 @@ function initCore() {
   try { updateMarksInfoFloating(); } catch (e) { console.warn('updateMarksInfoFloating failed', e); }
   try { initVersion(); } catch (e) { console.warn('initVersion failed', e); }
   try { initPrintSettings(); } catch (e) { console.warn('initPrintSettings failed', e); }
+  try { initSavedPapersView(); } catch (e) { console.warn('initSavedPapersView failed', e); }
 }

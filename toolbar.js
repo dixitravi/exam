@@ -19,20 +19,15 @@ if (addQuestionBtn) addQuestionBtn.onclick = () => {
 };
 
 if (addSectionBtn) addSectionBtn.onclick = () => {
-  addSection();
-  renderQuestions();
+  openAddSectionModal();
 };
 
 // New / Open / Save
 if (newPaperBtn) newPaperBtn.onclick = onNewPaperRequested;
-if (openPaperBtn) openPaperBtn.onclick = async () => {
-  if (typeof hasUnsavedChanges === 'function' && hasUnsavedChanges()) {
-    const ok = await showConfirm('Unsaved Changes. You have unsaved changes. Do you want to continue?', 'Continue');
-    if (!ok) return;
-  }
-  if ('showOpenFilePicker' in window) {
-    await openPaperFromPicker();
-  } else {
+if (openPaperBtn) openPaperBtn.onclick = () => {
+  if (typeof openPaperFromPicker === 'function') {
+    openPaperFromPicker();
+  } else if (openPaperInput) {
     openPaperInput.click();
   }
 };
@@ -83,7 +78,13 @@ const toolbarBottom = document.getElementById('toolbarBottom');
 // Wire bottom toolbar to same actions (if present)
 if (addQuestionBtnBottom) addQuestionBtnBottom.onclick = addQuestionBtn.onclick;
 if (newPaperBtnBottom)     newPaperBtnBottom.onclick     = newPaper;
-if (openPaperBtnBottom)    openPaperBtnBottom.onclick    = () => openPaperInput.click();
+if (openPaperBtnBottom)    openPaperBtnBottom.onclick    = () => {
+  if (typeof openPaperFromPicker === 'function') {
+    openPaperFromPicker();
+  } else if (openPaperInput) {
+    openPaperInput.click();
+  }
+};
 if (savePaperBtnBottom)    savePaperBtnBottom.onclick    = savePaper;
 if (printBtnBottom)        printBtnBottom.onclick        = doPrint;
 
