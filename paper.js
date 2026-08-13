@@ -33,7 +33,7 @@ function formatDateLocal() {
 function generateBaseName() {
   const subject = (metaFields.subject.value || '').trim().replace(/\s+/g, '_') || 'ExamPaper';
   const className = (metaFields.className.value || '').trim();
-  const rawDate = metaFields.examDate.value;
+  const rawDate = metaFields.dateOfExam.value;
   const date = rawDate ? rawDate : formatDateLocal();
   let base = subject;
   if (className) base += '_' + className;
@@ -163,10 +163,11 @@ function validateAndNormalize(fileName, data) {
       updatedAt: data.updatedAt || now,
       meta: {
         schoolName: meta.schoolName || '',
+        paperTitle: meta.paperTitle || '',
         subject: meta.subject || '',
         className: meta.className || '',
         classSection: meta.classSection || '',
-        examDate: meta.examDate || '',
+        dateOfExam: meta.dateOfExam || meta.examDate || '',
         duration: meta.duration !== undefined ? String(meta.duration) : '',
         maxMarks: meta.maxMarks !== undefined ? String(meta.maxMarks) : ''
       },
@@ -187,8 +188,12 @@ function loadPaper(paper) {
   };
 
   Object.keys(metaFields).forEach(key => {
-    metaFields[key].value = (paper.meta && paper.meta[key]) ? paper.meta[key] : '';
+    let val = (paper.meta && paper.meta[key]) ? paper.meta[key] : '';
+    if (key === 'dateOfExam' && !val && paper.meta && paper.meta.examDate) val = paper.meta.examDate;
+    metaFields[key].value = val;
   });
+  paperTitle = (paper.meta && paper.meta.paperTitle) || paper.name || 'Untitled Paper';
+  if (metaFields.paperTitle) metaFields.paperTitle.value = paperTitle;
 
   if (Array.isArray(paper.sections) && paper.sections.length > 0) {
     sections = paper.sections.map(s => ({
@@ -223,7 +228,12 @@ function loadPaper(paper) {
   updateSnapshotMeta();
   updatePrintExamDetails();
   updateTotalMarks();
+  lastSaved = currentPaper.updatedAt ? new Date(currentPaper.updatedAt).getTime() : Date.now();
+  updatePaperInfoCard();
   showStatus('Opened: ' + currentPaper.name, 'success');
+  resetHistory();
+  if (typeof showEditor === 'function') showEditor();
+  if (typeof showEditorView === 'function') showEditorView();
 }
 
 function newPaper() {
@@ -237,16 +247,8 @@ function newPaper() {
   };
 
   questions = [];
-  const defaultSectionId = generateSectionId();
-  sections = [{
-    id: defaultSectionId,
-    name: 'SECTION A',
-    type: 'Multiple Choice',
-    instructions: '',
-    collapsed: false,
-    questionIds: []
-  }];
-  currentSectionId = defaultSectionId;
+  sections = [];
+  currentSectionId = null;
 
   if (typeof setTodayDateAndDefaults === 'function') {
     setTodayDateAndDefaults();
@@ -255,19 +257,21 @@ function newPaper() {
   metaFields.subject.value = '';
   metaFields.className.value = 'IV';
   metaFields.classSection.value = 'A';
-  metaFields.paperTitle.value = '';
+  paperTitle = 'Untitled Paper';
+  if (metaFields.paperTitle) metaFields.paperTitle.value = paperTitle;
 
-  const firstQuestion = createEmptyQuestion();
-  firstQuestion.sectionId = defaultSectionId;
-  sections[0].questionIds.push(firstQuestion.id);
-  questions.push(firstQuestion);
   renderQuestions();
   updateSnapshotMeta();
   updatePrintExamDetails();
   updateTotalMarks();
+  lastSaved = null;
+  updatePaperInfoCard();
   fileHandle = null;
   showStatus('New paper created', 'success');
+  resetHistory();
   markSaved();
+  if (typeof showEditor === 'function') showEditor();
+  if (typeof showEditorView === 'function') showEditorView();
 }
 
 function downloadPaper(paper, filename) {
@@ -321,7 +325,10 @@ async function savePaper() {
     currentPaper.createdAt = paper.createdAt;
     currentPaper.updatedAt = paper.updatedAt;
     showStatus('Saved: ' + currentPaper.filename, 'success');
+    if (typeof recordSavedExam === 'function') recordSavedExam(paper);
     markSaved();
+    lastSaved = Date.now();
+    updatePaperInfoCard();
     return;
   }
 
@@ -345,7 +352,10 @@ async function savePaper() {
       currentPaper.createdAt = paper.createdAt;
       currentPaper.updatedAt = paper.updatedAt;
       showStatus('Saved: ' + currentPaper.filename, 'success');
+      if (typeof recordSavedExam === 'function') recordSavedExam(paper);
       markSaved();
+      lastSaved = Date.now();
+      updatePaperInfoCard();
     } catch (err) {
       if (err.name !== 'AbortError') {
         showStatus('Save failed: ' + err.message, 'error');
@@ -362,7 +372,10 @@ async function savePaper() {
   currentPaper.updatedAt = paper.updatedAt;
   downloadPaper(paper, filename);
   showStatus('Saved: ' + filename, 'success');
+  if (typeof recordSavedExam === 'function') recordSavedExam(paper);
   markSaved();
+  lastSaved = Date.now();
+  updatePaperInfoCard();
 }
 
 function openPaper(file) {

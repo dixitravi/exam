@@ -13,6 +13,7 @@ function isDebugMode() {
 
     const search = window.location.search || '';
     if (/[?&]debug(=1?)?(&|$)/.test(search)) return true;
+    if (/[?&]dev(=1?)?(&|$)/.test(search)) return true;
 
     if (window.sessionStorage && sessionStorage.getItem('ved-debug') === '1') return true;
     if (window.localStorage && localStorage.getItem('ved-debug') === '1') return true;
@@ -240,6 +241,9 @@ function createUI() {
   btn.id = 'diagnosticsBtn';
   btn.className = 'diagnostics-btn';
   btn.title = 'Open Developer Diagnostics';
+  btn.style.zIndex = '99999';
+  btn.style.display = 'flex';
+  btn.style.visibility = 'visible';
   btn.innerHTML = `
     <span id="diagnosticsIndicator" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:#22c55e;flex-shrink:0;"></span>
     <span style="margin:0 4px;">Dev</span>
